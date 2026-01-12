@@ -18,11 +18,23 @@ const {
 // All routes require authentication
 router.use(authenticateToken);
 
+// Debug middleware for this router
+router.use((req, res, next) => {
+    console.log(`[GroupChatRouter] Request: ${req.method} ${req.path}`);
+    next();
+});
+
+// Ping route
+router.get('/ping', (req, res) => res.json({ message: 'pong' }));
+
 // Get tier groups info (admin only)
 router.get('/tier-groups', authorizeRoles('admin', 'superadmin'), getTierGroups);
 
 // Chat settings routes
-router.get('/:chatId/settings', getChatSettings);
+router.get('/:chatId/settings', (req, res, next) => {
+    console.log(`[GroupChatRouter] Matched settings route for ${req.params.chatId}`);
+    next();
+}, getChatSettings);
 router.patch('/:chatId/settings', updateChatSettings);
 
 // Permission management routes

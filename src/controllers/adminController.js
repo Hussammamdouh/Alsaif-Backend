@@ -27,6 +27,15 @@ class AdminController {
       }
       if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
 
+      // Advanced search (case-insensitive regex on name or email)
+      if (req.query.search) {
+        const searchRegex = new RegExp(req.query.search, 'i');
+        filter.$or = [
+          { name: searchRegex },
+          { email: searchRegex }
+        ];
+      }
+
       const [users, total] = await Promise.all([
         User.find(filter)
           .select('-password')

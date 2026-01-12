@@ -131,13 +131,14 @@ app.use('/api/auth', authRoutes);
 app.use('/api/users', userRoutes);
 
 // Admin routes (with bulk operation limiter for bulk endpoints)
+const adminDashboardRoutes = require('./routes/adminDashboardRoutes');
+app.use('/api/admin/dashboard', adminDashboardRoutes); // Admin dashboard
+
 app.use('/api/admin', adminRoutes);
 app.use('/api/admin/abuse', abuseRoutes);
 app.use('/api/admin/insights', insightRoutes); // Admin insight management
 app.use('/api/admin/chats', adminChatRoutes); // Admin chat management
 app.use('/api/admin/jobs', jobRoutes); // Admin job queue management
-const adminDashboardRoutes = require('./routes/adminDashboardRoutes');
-app.use('/api/admin/dashboard', adminDashboardRoutes); // Admin dashboard
 
 // New Admin Enhancement Routes
 const adminAnalyticsRoutes = require('./routes/adminAnalyticsRoutes');

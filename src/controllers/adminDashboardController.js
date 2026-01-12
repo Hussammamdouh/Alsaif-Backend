@@ -203,7 +203,7 @@ exports.getAllDashboardData = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({
       success: true,
       data: {
-        overview,
+        ...overview,
         userAnalytics,
         contentAnalytics,
         engagement,

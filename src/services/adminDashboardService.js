@@ -15,9 +15,6 @@ const monitoringService = require('./monitoringService');
 const logger = require('../utils/logger');
 
 class AdminDashboardService {
-  /**
-   * Get overview statistics
-   */
   async getOverviewStats(timeRange = '30d') {
     try {
       const dateFilter = this.getDateFilter(timeRange);
@@ -26,19 +23,31 @@ class AdminDashboardService {
         totalUsers,
         newUsers,
         activeUsers,
+        suspendedUsers,
+        adminUsers,
+        premiumUsers,
         totalInsights,
         publishedInsights,
+        draftInsights,
+        premiumInsights,
         totalSubscriptions,
         activeSubscriptions,
+        expiredSubscriptions,
         totalRevenue
       ] = await Promise.all([
-        User.countDocuments({ isDeleted: false }),
-        User.countDocuments({ createdAt: { $gte: dateFilter }, isDeleted: false }),
-        User.countDocuments({ lastLogin: { $gte: dateFilter }, isDeleted: false }),
-        Insight.countDocuments({ isDeleted: false }),
-        Insight.countDocuments({ status: 'published', isDeleted: false }),
+        User.countDocuments(),
+        User.countDocuments({ createdAt: { $gte: dateFilter } }),
+        User.countDocuments({ lastLogin: { $gte: dateFilter } }),
+        User.countDocuments({ isActive: false }),
+        User.countDocuments({ role: { $in: ['admin', 'superadmin'] } }),
+        Subscription.countDocuments({ status: 'active', tier: 'premium' }), // Count based on active premium subs
+        Insight.countDocuments({ isDeleted: { $ne: true } }),
+        Insight.countDocuments({ status: 'published', isDeleted: { $ne: true } }),
+        Insight.countDocuments({ status: 'draft', isDeleted: { $ne: true } }),
+        Insight.countDocuments({ type: 'premium', isDeleted: { $ne: true } }),
         Subscription.countDocuments(),
-        Subscription.countDocuments({ status: 'active', tier: 'premium' }),
+        Subscription.countDocuments({ status: 'active' }),
+        Subscription.countDocuments({ status: 'expired' }),
         this.calculateRevenue(dateFilter)
       ]);
 
@@ -50,18 +59,23 @@ class AdminDashboardService {
           total: totalUsers,
           new: newUsers,
           active: activeUsers,
+          suspended: suspendedUsers,
+          admins: adminUsers,
+          premium: premiumUsers,
           growthRate: userGrowthRate
         },
         insights: {
           total: totalInsights,
           published: publishedInsights,
-          draft: totalInsights - publishedInsights,
+          drafts: draftInsights,
+          premium: premiumInsights,
           growthRate: insightGrowthRate
         },
         subscriptions: {
           total: totalSubscriptions,
           active: activeSubscriptions,
-          inactive: totalSubscriptions - activeSubscriptions
+          expired: expiredSubscriptions,
+          revenue: totalRevenue
         },
         revenue: {
           total: totalRevenue,

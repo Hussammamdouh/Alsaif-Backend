@@ -92,7 +92,4 @@ router.post('/users/bulk-suspend', bulkOperationLimiter, bulkUserIdsValidation, 
 router.post('/users/bulk-activate', bulkOperationLimiter, bulkUserIdsValidation, adminController.bulkActivateUsers);
 router.post('/users/bulk-delete', bulkOperationLimiter, bulkUserIdsValidation, adminController.bulkDeleteUsers);
 
-// Dashboard
-router.get('/dashboard', adminController.getDashboardStats);
-
 module.exports = router;

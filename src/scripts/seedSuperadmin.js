@@ -7,7 +7,7 @@
 
 const mongoose = require('mongoose');
 const User = require('../models/User');
-const { connectDB } = require('../config/database');
+const connectDB = require('../config/database');
 const logger = require('../utils/logger');
 
 const SUPERADMIN_EMAIL = process.env.SUPERADMIN_EMAIL || 'superadmin@elsaif.com';

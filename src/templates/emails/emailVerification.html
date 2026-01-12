@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Your Email</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 40px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      color: #2c3e50;
+      margin: 0;
+    }
+    .content {
+      margin-bottom: 30px;
+    }
+    .cta-button {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: #27ae60;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      font-size: 12px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Verify Your Email Address</h1>
+    </div>
+
+    <div class="content">
+      <p>Hi {{userName}},</p>
+
+      <p>Thanks for signing up! Please verify your email address to activate your account and start enjoying all the features ElSaif Stock Insights has to offer.</p>
+
+      <p style="text-align: center;">
+        <a href="{{verificationUrl}}" class="cta-button">Verify Email Address</a>
+      </p>
+
+      <p>If the button doesn't work, copy and paste this link into your browser:</p>
+      <p style="word-break: break-all; color: #3498db;">{{verificationUrl}}</p>
+
+      <p>If you didn't create an account with ElSaif Stock Insights, you can safely ignore this email.</p>
+
+      <p>Best regards,<br>
+      The ElSaif Team</p>
+    </div>
+
+    <div class="footer">
+      <p>You're receiving this email because this address was used to create an account.</p>
+      <p>&copy; {{year}} ElSaif Stock Insights. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

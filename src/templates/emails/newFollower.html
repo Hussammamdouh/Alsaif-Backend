@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>New Follower</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      max-width: 600px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      background-color: #ffffff;
+      border-radius: 8px;
+      padding: 40px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .header {
+      text-align: center;
+      margin-bottom: 30px;
+    }
+    .header h1 {
+      color: #2c3e50;
+      margin: 0;
+    }
+    .content {
+      margin-bottom: 30px;
+    }
+    .follower-box {
+      background-color: #e8f5e9;
+      border-left: 4px solid #27ae60;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 4px;
+      text-align: center;
+    }
+    .follower-box h2 {
+      margin: 0;
+      color: #27ae60;
+    }
+    .cta-button {
+      display: inline-block;
+      padding: 12px 30px;
+      background-color: #3498db;
+      color: #ffffff !important;
+      text-decoration: none;
+      border-radius: 5px;
+      font-weight: bold;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 30px;
+      padding-top: 20px;
+      border-top: 1px solid #e0e0e0;
+      font-size: 12px;
+      color: #777;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>You Have a New Follower!</h1>
+    </div>
+
+    <div class="content">
+      <p>Hi {{userName}},</p>
+
+      <p>Great news! You have a new follower on ElSaif Stock Insights:</p>
+
+      <div class="follower-box">
+        <h2>{{followerName}}</h2>
+      </div>
+
+      <p style="text-align: center;">
+        <a href="{{followerProfile}}" class="cta-button">View Profile</a>
+      </p>
+
+      <p>Keep sharing valuable insights to grow your audience!</p>
+
+      <p>Best regards,<br>
+      The ElSaif Team</p>
+    </div>
+
+    <div class="footer">
+      <p>You're receiving this because someone followed you.</p>
+      <p>&copy; {{year}} ElSaif Stock Insights. All rights reserved.</p>
+    </div>
+  </div>
+</body>
+</html>

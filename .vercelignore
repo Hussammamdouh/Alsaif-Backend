@@ -1,0 +1,40 @@
+# Development files
+node_modules
+.env
+.env.local
+.env.*.local
+
+# Test files
+tests
+*.test.js
+coverage
+
+# Documentation
+*.md
+docs
+
+# Scripts (not needed in serverless)
+src/scripts
+
+# VPS-specific files
+ecosystem.config.js
+pm2.config.js
+
+# Git
+.git
+.gitignore
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db

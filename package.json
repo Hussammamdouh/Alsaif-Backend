@@ -1,0 +1,68 @@
+{
+  "name": "stock-insights-backend",
+  "version": "1.0.0",
+  "description": "Backend for Stock Insights mobile application",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "start:prod": "NODE_ENV=production node server.js",
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step required for Node.js' && exit 0",
+    "lint": "echo 'Add ESLint configuration for linting' && exit 0",
+    "test": "jest --coverage --detectOpenHandles",
+    "test:watch": "jest --watch",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
+    "seed:superadmin": "node src/scripts/seedSuperadmin.js",
+    "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:test": "node src/scripts/seedTestData.js",
+    "seed:all": "npm run seed:superadmin && npm run seed:admin && npm run seed:test",
+    "validate:env": "node src/scripts/validateEnv.js",
+    "health": "node src/scripts/healthCheck.js",
+    "cleanup": "node src/scripts/cleanup.js",
+    "vercel-build": "echo 'Vercel build complete'"
+  },
+  "keywords": [
+    "stock",
+    "insights",
+    "api",
+    "jwt"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dompurify": "^3.3.1",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "express-mongo-sanitize": "^2.2.0",
+    "express-rate-limit": "^7.1.5",
+    "express-validator": "^7.0.1",
+    "firebase-admin": "^13.6.0",
+    "helmet": "^7.1.0",
+    "jsdom": "22.1.0",
+    "json2csv": "^6.0.0-alpha.2",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.0.3",
+    "multer": "^2.0.2",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^7.0.12",
+    "onesignal-node": "^3.4.0",
+    "pdfkit": "^0.17.2",
+    "sharp": "^0.34.5",
+    "socket.io": "^4.6.1",
+    "web-push": "^3.6.7",
+    "winston": "^3.11.0"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "mongodb-memory-server": "^9.1.4",
+    "nodemon": "^3.0.2",
+    "socket.io-client": "^4.6.1",
+    "supertest": "^6.3.3"
+  }
+}

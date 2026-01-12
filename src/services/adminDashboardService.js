@@ -310,7 +310,7 @@ class AdminDashboardService {
       const dbHealth = await this.checkDatabaseHealth();
 
       // Job queue health
-      const jobStats = await Job.getQueueStats();
+      const jobStats = await Job.getStats();
 
       // Recent errors from audit logs
       const recentErrors = await AuditLog.find({

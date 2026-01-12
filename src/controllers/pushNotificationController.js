@@ -21,7 +21,7 @@ exports.getPublicKey = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to get public key:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get public key'
     });
@@ -65,7 +65,7 @@ exports.subscribe = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to subscribe:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to subscribe to push notifications'
     });
@@ -95,7 +95,7 @@ exports.unsubscribe = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to unsubscribe:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to unsubscribe'
     });
@@ -126,7 +126,7 @@ exports.getSubscriptions = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to get subscriptions:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get subscriptions'
     });
@@ -161,7 +161,7 @@ exports.sendTestNotification = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to send test notification:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to send test notification'
     });
@@ -203,7 +203,7 @@ exports.sendToUser = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to send notification:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to send notification'
     });
@@ -252,7 +252,7 @@ exports.sendToUsers = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to send notifications:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to send notifications'
     });
@@ -272,7 +272,7 @@ exports.getStatistics = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to get statistics:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get statistics'
     });
@@ -296,7 +296,7 @@ exports.cleanup = async (req, res) => {
     });
   } catch (error) {
     logger.error('[PushController] Failed to cleanup:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to cleanup subscriptions'
     });

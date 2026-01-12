@@ -23,7 +23,7 @@ exports.getOverview = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AdminDashboardController] Failed to get overview:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get dashboard overview'
     });
@@ -45,7 +45,7 @@ exports.getUserAnalytics = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AdminDashboardController] Failed to get user analytics:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get user analytics'
     });
@@ -67,7 +67,7 @@ exports.getContentAnalytics = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AdminDashboardController] Failed to get content analytics:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get content analytics'
     });
@@ -89,7 +89,7 @@ exports.getEngagementMetrics = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AdminDashboardController] Failed to get engagement metrics:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get engagement metrics'
     });
@@ -109,7 +109,7 @@ exports.getSystemHealth = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AdminDashboardController] Failed to get system health:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get system health'
     });
@@ -148,7 +148,7 @@ exports.getActivityLogs = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AdminDashboardController] Failed to get activity logs:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get activity logs'
     });
@@ -170,7 +170,7 @@ exports.getNotificationStats = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AdminDashboardController] Failed to get notification stats:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to get notification statistics'
     });
@@ -214,7 +214,7 @@ exports.getAllDashboardData = async (req, res) => {
     });
   } catch (error) {
     logger.error('[AdminDashboardController] Failed to get all dashboard data:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({
       success: false,
       message: 'Failed to load dashboard data'
     });

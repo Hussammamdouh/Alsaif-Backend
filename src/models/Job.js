@@ -347,6 +347,11 @@ jobSchema.statics.getStats = async function (type = null) {
 };
 
 /**
+ * Alias for getStats (backward compatibility)
+ */
+jobSchema.statics.getQueueStats = jobSchema.statics.getStats;
+
+/**
  * Cleanup old completed jobs (retention policy)
  */
 jobSchema.statics.cleanupOldJobs = async function (retentionDays = 7) {

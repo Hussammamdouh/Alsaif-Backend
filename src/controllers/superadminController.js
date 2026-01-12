@@ -14,7 +14,7 @@ exports.getAllUsers = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: result.users, pagination: result.pagination });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get all users:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get users' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get users' });
   }
 };
 
@@ -26,7 +26,7 @@ exports.createAdmin = async (req, res) => {
     res.status(HTTP_STATUS.CREATED).json({ success: true, message: 'Admin created successfully', data: admin });
   } catch (error) {
     logger.error('[SuperadminController] Failed to create admin:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Failed to create admin' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: error.message || 'Failed to create admin' });
   }
 };
 
@@ -39,7 +39,7 @@ exports.updateUserRole = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: 'User role updated successfully', data: user });
   } catch (error) {
     logger.error('[SuperadminController] Failed to update user role:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Failed to update user role' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: error.message || 'Failed to update user role' });
   }
 };
 
@@ -51,7 +51,7 @@ exports.suspendUser = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: 'User suspended successfully', data: user });
   } catch (error) {
     logger.error('[SuperadminController] Failed to suspend user:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Failed to suspend user' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: error.message || 'Failed to suspend user' });
   }
 };
 
@@ -62,7 +62,7 @@ exports.unsuspendUser = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: 'User unsuspended successfully', data: user });
   } catch (error) {
     logger.error('[SuperadminController] Failed to unsuspend user:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Failed to unsuspend user' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: error.message || 'Failed to unsuspend user' });
   }
 };
 
@@ -73,7 +73,7 @@ exports.hardDeleteUser = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: 'User permanently deleted' });
   } catch (error) {
     logger.error('[SuperadminController] Failed to delete user:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Failed to delete user' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: error.message || 'Failed to delete user' });
   }
 };
 
@@ -86,7 +86,7 @@ exports.bulkUserOperations = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: `Bulk operation completed: ${result.success} successful, ${result.failed} failed`, data: result });
   } catch (error) {
     logger.error('[SuperadminController] Bulk operation failed:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: error.message || 'Bulk operation failed' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: error.message || 'Bulk operation failed' });
   }
 };
 
@@ -96,7 +96,7 @@ exports.getSystemStats = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: stats });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get system stats:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get system statistics' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get system statistics' });
   }
 };
 
@@ -106,7 +106,7 @@ exports.getDatabaseStats = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: stats });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get database stats:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get database statistics' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get database statistics' });
   }
 };
 
@@ -117,7 +117,7 @@ exports.getAuditLogs = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: result.logs, pagination: result.pagination });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get audit logs:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get audit logs' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get audit logs' });
   }
 };
 
@@ -127,7 +127,7 @@ exports.clearFailedJobs = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: `Cleared ${result.deletedCount} failed jobs`, data: result });
   } catch (error) {
     logger.error('[SuperadminController] Failed to clear failed jobs:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to clear failed jobs' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to clear failed jobs' });
   }
 };
 
@@ -137,7 +137,7 @@ exports.retryFailedJobs = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: `Retried ${result.retriedCount} failed jobs`, data: result });
   } catch (error) {
     logger.error('[SuperadminController] Failed to retry jobs:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to retry failed jobs' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to retry failed jobs' });
   }
 };
 
@@ -147,7 +147,7 @@ exports.getSystemConfiguration = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: config });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get system configuration:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get system configuration' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get system configuration' });
   }
 };
 
@@ -157,7 +157,7 @@ exports.performDatabaseMaintenance = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: 'Database maintenance completed', data: result });
   } catch (error) {
     logger.error('[SuperadminController] Database maintenance failed:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Database maintenance failed' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Database maintenance failed' });
   }
 };
 
@@ -167,7 +167,7 @@ exports.getCollectionAnalysis = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: analysis });
   } catch (error) {
     logger.error('[SuperadminController] Collection analysis failed:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Collection analysis failed' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Collection analysis failed' });
   }
 };
 
@@ -177,7 +177,7 @@ exports.getPerformanceMetrics = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: metrics });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get performance metrics:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get performance metrics' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get performance metrics' });
   }
 };
 
@@ -187,7 +187,7 @@ exports.getSystemInfo = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: info });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get system info:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get system information' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get system information' });
   }
 };
 
@@ -197,7 +197,7 @@ exports.getHealthStatus = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: health });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get health status:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get health status' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get health status' });
   }
 };
 
@@ -207,7 +207,7 @@ exports.getEndpointStats = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: stats });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get endpoint stats:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get endpoint statistics' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get endpoint statistics' });
   }
 };
 
@@ -217,7 +217,7 @@ exports.getRealTimeMetrics = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, data: metrics });
   } catch (error) {
     logger.error('[SuperadminController] Failed to get real-time metrics:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to get real-time metrics' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get real-time metrics' });
   }
 };
 
@@ -227,6 +227,6 @@ exports.resetMetrics = async (req, res) => {
     res.status(HTTP_STATUS.OK).json({ success: true, message: 'Performance metrics reset successfully' });
   } catch (error) {
     logger.error('[SuperadminController] Failed to reset metrics:', error);
-    res.status(HTTP_STATUS.INTERNAL_SERVER_ERROR).json({ success: false, message: 'Failed to reset metrics' });
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to reset metrics' });
   }
 };

@@ -12,6 +12,7 @@ const commentRoutes = require('./routes/commentRoutes');
 const adminChatRoutes = require('./routes/adminChatRoutes');
 const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
+const bannerRoutes = require('./routes/bannerRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { securityHeaders, mongoSanitizer, loginLimiter, registerLimiter } = require('./middleware/security');
@@ -150,6 +151,7 @@ const adminDiscountCodeRoutes = require('./routes/adminDiscountCodeRoutes');
 const adminNotificationTemplateRoutes = require('./routes/adminNotificationTemplateRoutes');
 const adminNotificationRoutes = require('./routes/adminNotificationRoutes');
 const adminBulkRoutes = require('./routes/adminBulkRoutes');
+const adminBannerRoutes = require('./routes/adminBannerRoutes');
 
 app.use('/api/admin/analytics', adminAnalyticsRoutes); // Analytics dashboard
 app.use('/api/admin/filters', adminFilterRoutes); // Advanced filtering
@@ -160,6 +162,7 @@ app.use('/api/admin/discount-codes', adminDiscountCodeRoutes); // Discount codes
 app.use('/api/admin/notification-templates', adminNotificationTemplateRoutes); // Notification templates
 app.use('/api/admin/notifications', adminNotificationRoutes); // Broadcast notifications
 app.use('/api/admin/bulk', adminBulkRoutes); // Bulk operations
+app.use('/api/admin/banners', adminBannerRoutes); // Banner management
 
 // Superadmin routes (bypass rate limits via roleAwareApiLimiter)
 app.use('/api/superadmin', superadminRoutes);
@@ -175,6 +178,9 @@ app.use('/api/subscriptions', subscriptionRoutes);
 
 // Notification routes (user preferences, history, admin analytics)
 app.use('/api/notifications', notificationRoutes);
+
+// Public banner access
+app.use('/api/banners', bannerRoutes);
 
 // Public insight access
 app.use('/api/insights', insightRoutes);

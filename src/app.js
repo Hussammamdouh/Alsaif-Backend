@@ -14,6 +14,7 @@ const subscriptionRoutes = require('./routes/subscriptionRoutes');
 const notificationRoutes = require('./routes/notificationRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
 const jobRoutes = require('./routes/jobRoutes');
+const groupChatRoutes = require('./routes/groupChatRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { securityHeaders, mongoSanitizer, loginLimiter, registerLimiter } = require('./middleware/security');
 const {
@@ -169,6 +170,7 @@ app.use('/api/superadmin', superadminRoutes);
 
 // Chat routes (with message limiter applied in socket handlers)
 app.use('/api/chats', chatRoutes);
+app.use('/api/chats', groupChatRoutes); // Group chat settings and permissions
 
 // Message routes (edit, delete, pin, reactions, etc.)
 app.use('/api/messages', messageRoutes);

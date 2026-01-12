@@ -8,6 +8,7 @@ const {
   getSubscriptionStats
 } = require('../utils/subscriptionHelper');
 const { HTTP_STATUS, ROLES } = require('../constants');
+const groupChatService = require('../services/groupChatService');
 
 /**
  * Subscription Controller
@@ -199,6 +200,13 @@ class SubscriptionController {
         source: source || 'admin_grant'
       });
 
+      // Add user to premium tier group chat
+      try {
+        await groupChatService.handleSubscriptionChange(userId, 'free', 'premium');
+      } catch (groupError) {
+        console.error('[SubscriptionController] Failed to update group membership:', groupError);
+      }
+
       res.status(HTTP_STATUS.OK).json({
         success: true,
         message: 'Premium subscription granted successfully',
@@ -218,6 +226,13 @@ class SubscriptionController {
       const { userId, reason } = req.body;
 
       const subscription = await revokePremiumSubscription(userId, reason || 'Revoked by admin');
+
+      // Remove user from premium tier group chat
+      try {
+        await groupChatService.handleSubscriptionEnd(userId);
+      } catch (groupError) {
+        console.error('[SubscriptionController] Failed to update group membership:', groupError);
+      }
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -310,6 +325,15 @@ class SubscriptionController {
       }
 
       await cancelSubscription(subscription._id, userId, reason || 'User cancelled');
+
+      // If it was a premium subscription, remove from premium group
+      if (subscription.tier === 'premium') {
+        try {
+          await groupChatService.handleSubscriptionEnd(userId);
+        } catch (groupError) {
+          console.error('[SubscriptionController] Failed to update group membership:', groupError);
+        }
+      }
 
       res.status(HTTP_STATUS.OK).json({
         success: true,

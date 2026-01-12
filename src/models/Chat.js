@@ -37,6 +37,29 @@ const chatSchema = new mongoose.Schema(
       default: false,
       index: true
     },
+    // System-managed tier group fields
+    isSystemGroup: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    tierGroup: {
+      type: String,
+      enum: ['free', 'premium', null],
+      default: null,
+      index: true
+    },
+    // Group settings for admin-controlled messaging
+    settings: {
+      onlyAdminsCanSend: {
+        type: Boolean,
+        default: false
+      },
+      allowedSenders: [{
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User'
+      }]
+    },
     lastMessage: {
       content: String,
       sender: {
@@ -97,12 +120,51 @@ chatSchema.methods.getUserPermission = function (userId) {
   return participant ? participant.permission : null;
 };
 
-// Check if user can send messages
+// Check if user is in allowedSenders list
+chatSchema.methods.isAllowedSender = function (userId) {
+  if (!this.settings || !this.settings.allowedSenders) return false;
+  return this.settings.allowedSenders.some(
+    id => id.toString() === userId.toString()
+  );
+};
+
+// Check if user can send messages (updated for admin-controlled groups)
 chatSchema.methods.canSendMessage = function (userId) {
   const permission = this.getUserPermission(userId);
   if (!permission) return false;
 
+  // If onlyAdminsCanSend is enabled
+  if (this.settings && this.settings.onlyAdminsCanSend) {
+    // Admins can always send
+    if (permission === CHAT_PERMISSIONS.ADMIN) return true;
+    // Check if user is in allowedSenders list
+    return this.isAllowedSender(userId);
+  }
+
+  // Normal permission check - member and admin can send
   return [CHAT_PERMISSIONS.MEMBER, CHAT_PERMISSIONS.ADMIN].includes(permission);
+};
+
+// Grant send permission to a non-admin user
+chatSchema.methods.grantSendPermission = function (userId) {
+  if (!this.settings) {
+    this.settings = { onlyAdminsCanSend: false, allowedSenders: [] };
+  }
+  if (!this.settings.allowedSenders) {
+    this.settings.allowedSenders = [];
+  }
+  if (!this.isAllowedSender(userId)) {
+    this.settings.allowedSenders.push(userId);
+  }
+};
+
+// Revoke send permission from a user
+chatSchema.methods.revokeSendPermission = function (userId) {
+  if (this.settings && this.settings.allowedSenders) {
+    this.settings.allowedSenders = this.settings.allowedSenders.filter(
+      id => id.toString() !== userId.toString()
+    );
+  }
 };
 
 // Add participant
@@ -123,6 +185,8 @@ chatSchema.methods.removeParticipant = function (userId) {
     const participantId = p.user._id || p.user;
     return participantId.toString() !== userId.toString();
   });
+  // Also remove from allowedSenders if present
+  this.revokeSendPermission(userId);
 };
 
 // Update last message

@@ -6,6 +6,7 @@ const { ERROR_MESSAGES, ROLES, AUDIT_ACTIONS } = require('../constants');
 const AuditLogger = require('../utils/auditLogger');
 const { createDefaultSubscription } = require('../utils/subscriptionHelper');
 const emailService = require('./emailService');
+const groupChatService = require('./groupChatService');
 const jwt = require('jsonwebtoken');
 const logger = require('../utils/logger');
 
@@ -34,6 +35,13 @@ class AuthService {
       ipAddress: deviceInfo.ip,
       userAgent: deviceInfo.userAgent
     });
+
+    // Add new user to free tier group chat
+    try {
+      await groupChatService.handleNewUserRegistration(user._id);
+    } catch (groupError) {
+      logger.error('[AuthService] Failed to add user to tier group:', groupError);
+    }
 
     // Generate token pair
     const { accessToken, refreshToken } = await generateTokenPair(

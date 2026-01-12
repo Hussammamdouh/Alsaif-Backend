@@ -13,15 +13,16 @@ const logger = require('../utils/logger');
  * Helper: Calculate monthly price from any billing cycle
  */
 function calculateMonthlyPrice(price, billingCycle) {
+  const safePrice = parseFloat(price) || 0;
   switch (billingCycle) {
     case 'monthly':
-      return price;
+      return safePrice;
     case 'quarterly':
-      return price / 3;
+      return safePrice / 3;
     case 'yearly':
-      return price / 12;
+      return safePrice / 12;
     default:
-      return price;
+      return safePrice;
   }
 }
 
@@ -62,10 +63,11 @@ exports.getRevenueOverview = async (req, res, next) => {
     const { startDate, endDate } = req.query;
 
     // Active subscriptions for MRR/ARR
-    const activeSubscriptions = await Subscription.find({ status: 'active' }).lean();
+    const activeSubscriptions = await Subscription.find({ status: 'active' }).populate('plan').lean();
 
     const mrr = activeSubscriptions.reduce((sum, sub) => {
-      const monthlyPrice = calculateMonthlyPrice(sub.price, sub.billingCycle);
+      const price = sub.plan?.price || sub.price || 0;
+      const monthlyPrice = calculateMonthlyPrice(price, sub.billingCycle);
       return sum + monthlyPrice;
     }, 0);
 
@@ -86,7 +88,8 @@ exports.getRevenueOverview = async (req, res, next) => {
     // Revenue by tier
     const revenueByTier = activeSubscriptions.reduce((acc, sub) => {
       const tier = sub.tier || 'basic';
-      const monthlyPrice = calculateMonthlyPrice(sub.price, sub.billingCycle);
+      const price = sub.plan?.price || sub.price || 0;
+      const monthlyPrice = calculateMonthlyPrice(price, sub.billingCycle);
       acc[tier] = (acc[tier] || 0) + monthlyPrice;
       return acc;
     }, {});

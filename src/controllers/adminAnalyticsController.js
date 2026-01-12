@@ -287,9 +287,10 @@ exports.getRevenueOverview = async (req, res, next) => {
     ]);
 
     // Calculate MRR (Monthly Recurring Revenue)
-    const activeSubscriptions = await Subscription.find({ status: 'active' });
+    const activeSubscriptions = await Subscription.find({ status: 'active' }).populate('plan').lean();
     const mrr = activeSubscriptions.reduce((sum, sub) => {
-      const monthlyPrice = calculateMonthlyPrice(sub.price, sub.billingCycle);
+      const price = sub.plan?.price || sub.price || 0;
+      const monthlyPrice = calculateMonthlyPrice(price, sub.billingCycle);
       return sum + monthlyPrice;
     }, 0);
 
@@ -304,7 +305,9 @@ exports.getRevenueOverview = async (req, res, next) => {
       },
     });
     const totalActive = await Subscription.countDocuments({ status: 'active' });
-    const churnRate = ((totalCancelled / (totalActive + totalCancelled)) * 100).toFixed(2);
+    const churnRate = (totalActive + totalCancelled > 0)
+      ? ((totalCancelled / (totalActive + totalCancelled)) * 100).toFixed(2)
+      : 0;
 
     res.json({
       success: true,
@@ -595,7 +598,7 @@ exports.getConversionFunnel = async (req, res, next) => {
       User.countDocuments({ ...dateFilter, subscriptionStatus: 'active' }),
     ]);
 
-    const conversionRate = ((paidUsers / totalUsers) * 100).toFixed(2);
+    const conversionRate = totalUsers > 0 ? ((paidUsers / totalUsers) * 100).toFixed(2) : 0;
     const trialConversion = ((paidUsers / (trialUsers || 1)) * 100).toFixed(2);
 
     res.json({
@@ -843,13 +846,13 @@ async function getSummaryMetrics(filter) {
     User.countDocuments({ createdAt: { $lte: filter.createdAt.$lte } }),
     User.countDocuments({ ...filter, isActive: true }),
     User.countDocuments(filter),
-    Subscription.aggregate([
-      { $match: { ...filter, status: 'active' } },
-      { $group: { _id: null, mrr: { $sum: '$price' } } }
-    ])
+    Subscription.find({ ...filter, status: 'active' }).populate('plan').lean()
   ]);
 
-  const mrr = revenue[0]?.mrr || 0;
+  const mrr = revenue.reduce((sum, sub) => {
+    const price = sub.plan?.price || sub.price || 0;
+    return sum + calculateMonthlyPrice(price, sub.billingCycle);
+  }, 0);
 
   return {
     totalUsers,
@@ -900,16 +903,14 @@ function getUserStatsAggregate(dateFilter) {
 }
 
 function getRevenueStatsAggregate(dateFilter) {
-  return Subscription.aggregate([
-    { $match: { createdAt: dateFilter, status: 'active' } },
-    {
-      $group: {
-        _id: null,
-        total: { $sum: '$price' },
-        count: { $sum: 1 },
-      },
-    },
-  ]).then(result => result[0] || { total: 0, count: 0 });
+  return Subscription.find({ createdAt: dateFilter, status: 'active' }).populate('plan').lean()
+    .then(result => {
+      const total = result.reduce((sum, sub) => sum + (sub.plan?.price || sub.price || 0), 0);
+      return {
+        total,
+        count: result.length
+      };
+    });
 }
 
 function getContentStatsAggregate(dateFilter) {
@@ -968,14 +969,15 @@ function getGroupByFormat(period) {
 }
 
 function calculateMonthlyPrice(price, billingCycle) {
+  const safePrice = parseFloat(price) || 0;
   switch (billingCycle) {
     case 'monthly':
-      return price;
+      return safePrice;
     case 'quarterly':
-      return price / 3;
+      return safePrice / 3;
     case 'yearly':
-      return price / 12;
+      return safePrice / 12;
     default:
-      return price;
+      return safePrice;
   }
 }

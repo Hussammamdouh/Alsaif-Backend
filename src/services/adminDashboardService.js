@@ -507,11 +507,12 @@ class AdminDashboardService {
       const subscriptions = await Subscription.find({
         createdAt: { $gte: dateFilter },
         status: { $in: ['active', 'cancelled', 'expired'] }
-      });
+      }).populate('plan').lean();
 
-      // Simple revenue calculation (you can enhance this based on your pricing)
-      const premiumPrice = 9.99; // Example price
-      return subscriptions.filter(s => s.tier === 'premium').length * premiumPrice;
+      return subscriptions.reduce((sum, sub) => {
+        const price = sub.plan?.price || sub.price || 0;
+        return sum + price;
+      }, 0);
     } catch (error) {
       logger.error('[AdminDashboard] Failed to calculate revenue:', error);
       return 0;

@@ -73,6 +73,12 @@ const corsOptions = {
       ? process.env.ALLOWED_ORIGINS.split(',')
       : ['http://localhost:3000', 'http://localhost:19006']; // Default for dev
 
+    // Allow all origins if ALLOWED_ORIGINS is set to '*'
+    if (allowedOrigins.includes('*')) {
+      callback(null, true);
+      return;
+    }
+
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin || allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);

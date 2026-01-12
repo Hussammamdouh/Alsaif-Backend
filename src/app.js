@@ -169,8 +169,8 @@ app.use('/api/admin/banners', adminBannerRoutes); // Banner management
 app.use('/api/superadmin', superadminRoutes);
 
 // Chat routes (with message limiter applied in socket handlers)
+app.use('/api/chats', groupChatRoutes); // Group chat settings and permissions (Specific routes first)
 app.use('/api/chats', chatRoutes);
-app.use('/api/chats', groupChatRoutes); // Group chat settings and permissions
 
 // Message routes (edit, delete, pin, reactions, etc.)
 app.use('/api/messages', messageRoutes);

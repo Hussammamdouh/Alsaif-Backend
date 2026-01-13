@@ -230,3 +230,37 @@ exports.resetMetrics = async (req, res) => {
     res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to reset metrics' });
   }
 };
+exports.toggleSubscriptionPause = async (req, res) => {
+  try {
+    const { paused } = req.body;
+    if (paused === undefined) return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'paused is required' });
+    const settings = await superadminService.toggleSubscriptionPause(paused, req.user.id);
+    res.status(HTTP_STATUS.OK).json({ success: true, message: `Subscriptions ${paused ? 'paused' : 'resumed'} successfully`, data: settings });
+  } catch (error) {
+    logger.error('[SuperadminController] Failed to toggle subscription pause:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: error.message || 'Failed to toggle subscription pause' });
+  }
+};
+
+exports.toggleNewSubscriptions = async (req, res) => {
+  try {
+    const { enabled, message } = req.body;
+    if (enabled === undefined) return res.status(HTTP_STATUS.BAD_REQUEST).json({ success: false, message: 'enabled is required' });
+    const settings = await superadminService.toggleNewSubscriptions(enabled, message, req.user.id);
+    res.status(HTTP_STATUS.OK).json({ success: true, message: `New subscriptions ${enabled ? 'enabled' : 'disabled'} successfully`, data: settings });
+  } catch (error) {
+    logger.error('[SuperadminController] Failed to toggle new subscriptions:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: error.message || 'Failed to toggle new subscriptions' });
+  }
+};
+
+exports.getSystemSettings = async (req, res) => {
+  try {
+    const SystemSettings = require('../models/SystemSettings');
+    const settings = await SystemSettings.getSettings();
+    res.status(HTTP_STATUS.OK).json({ success: true, data: settings });
+  } catch (error) {
+    logger.error('[SuperadminController] Failed to get system settings:', error);
+    res.status(HTTP_STATUS.INTERNAL_SERVER).json({ success: false, message: 'Failed to get system settings' });
+  }
+};

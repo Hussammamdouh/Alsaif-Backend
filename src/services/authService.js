@@ -12,7 +12,7 @@ const logger = require('../utils/logger');
 
 class AuthService {
   async register(userData, deviceInfo = {}) {
-    const { name, email, password } = userData;
+    const { name, email, password, nationality } = userData;
 
     // SECURITY FIX (HIGH-002): Prevent user enumeration via timing-safe check
     // Check if user already exists
@@ -27,6 +27,7 @@ class AuthService {
       name,
       email,
       password,
+      nationality,
       role: ROLES.USER
     });
 

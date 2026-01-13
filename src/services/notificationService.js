@@ -107,6 +107,12 @@ class NotificationService {
       return await this.getInterestedUsersForContent(data);
     }
 
+    // For admin events
+    if (event === 'insight_request:submitted') {
+      // Return all admins
+      return await User.find({ role: { $in: ['admin', 'superadmin'] }, isActive: true });
+    }
+
     // Default: return empty array
     return [];
   }
@@ -229,7 +235,11 @@ class NotificationService {
 
       'system:welcome': { category: 'system', notificationType: 'announcements' },
       'system:security-alert': { category: 'system', notificationType: 'securityAlerts' },
-      'system:announcement': { category: 'system', notificationType: 'announcements' }
+      'system:announcement': { category: 'system', notificationType: 'announcements' },
+
+      'insight_request:submitted': { category: 'system', notificationType: 'announcements' }, // Admins get system announcements
+      'insight_request:approved': { category: 'content', notificationType: 'newInsights' },
+      'insight_request:rejected': { category: 'content', notificationType: 'newInsights' }
     };
 
     return mapping[eventType] || {};
@@ -305,6 +315,24 @@ class NotificationService {
         actionUrl: data.url,
         actionText: 'Read Now',
         imageUrl: data.coverImage
+      },
+      'insight_request:submitted': {
+        title: 'New Insight Request 📝',
+        body: `A new insight request has been submitted by ${data.userName}: ${data.title}`,
+        actionUrl: data.adminUrl,
+        actionText: 'Review Request'
+      },
+      'insight_request:approved': {
+        title: 'Insight Request Approved! 🎉',
+        body: `Congratulations! Your insight request "${data.title}" has been approved.`,
+        actionUrl: data.ctaUrl,
+        actionText: 'View Content'
+      },
+      'insight_request:rejected': {
+        title: 'Insight Request Update',
+        body: `Your insight request "${data.title}" was not approved. Reason: ${data.reason}`,
+        actionUrl: '/',
+        actionText: 'Close'
       }
     };
 

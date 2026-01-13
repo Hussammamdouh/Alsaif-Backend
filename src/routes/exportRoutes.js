@@ -43,4 +43,11 @@ router.get('/analytics/csv', exportController.exportAnalyticsCSV);
  */
 router.get('/insights/csv', exportController.exportInsightsCSV);
 
+/**
+ * @route   GET /api/export/users
+ * @desc    Export users list to XLSX
+ * @access  Admin
+ */
+router.get('/users', exportController.exportUsers);
+
 module.exports = router;

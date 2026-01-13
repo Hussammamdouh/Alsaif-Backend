@@ -123,17 +123,34 @@ const verifyAccessToken = (token) => {
   }
 };
 
-const verifyRefreshToken = async (token) => {
+const verifyRefreshToken = async (tokenString) => {
   try {
-    const refreshToken = await RefreshToken.findOne({ token })
-      .populate('user', 'role isActive');
+    console.log('[TokenUtils] Verifying refresh token:', tokenString.substring(0, 10) + '...');
+    const refreshToken = await RefreshToken.findOne({ token: tokenString }).populate('user');
 
-    if (!refreshToken || !refreshToken.isValid()) {
+    if (!refreshToken) {
+      console.warn('[TokenUtils] Refresh token not found in database');
       return null;
     }
 
+    if (!refreshToken.isValid()) {
+      console.warn('[TokenUtils] Refresh token is invalid (revoked or expired)', {
+        isRevoked: refreshToken.isRevoked,
+        expiresAt: refreshToken.expiresAt,
+        now: new Date()
+      });
+      return null;
+    }
+
+    if (!refreshToken.user) {
+      console.error('[TokenUtils] Refresh token has no associated user');
+      return null;
+    }
+
+    console.log('[TokenUtils] Refresh token verified for user:', refreshToken.user.email);
     return refreshToken;
   } catch (error) {
+    console.error('[TokenUtils] Error verifying refresh token:', error);
     return null;
   }
 };

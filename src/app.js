@@ -17,6 +17,7 @@ const bannerRoutes = require('./routes/bannerRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const groupChatRoutes = require('./routes/groupChatRoutes');
 const marketRoutes = require('./routes/marketRoutes');
+const insightRequestRoutes = require('./routes/insightRequestRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { securityHeaders, mongoSanitizer, loginLimiter, registerLimiter } = require('./middleware/security');
 const {
@@ -147,6 +148,7 @@ app.use('/api/admin/abuse', abuseRoutes);
 app.use('/api/admin/insights', insightRoutes); // Admin insight management
 app.use('/api/admin/chats', adminChatRoutes); // Admin chat management
 app.use('/api/admin/jobs', jobRoutes); // Admin job queue management
+app.use('/api/admin/insight-requests', insightRequestRoutes); // Admin insight requests
 
 // New Admin Enhancement Routes
 const adminAnalyticsRoutes = require('./routes/adminAnalyticsRoutes');
@@ -192,6 +194,7 @@ app.use('/api/banners', bannerRoutes);
 
 // Public insight access
 app.use('/api/insights', insightRoutes);
+app.use('/api/insight-requests', insightRequestRoutes);
 
 // Comment routes (mixed public/authenticated)
 app.use('/api/comments', commentRoutes);

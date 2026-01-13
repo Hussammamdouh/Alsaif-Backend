@@ -10,6 +10,8 @@ const fs = require('fs');
 const path = require('path');
 const logger = require('../utils/logger');
 
+const XLSX = require('xlsx');
+
 class ExportService {
   constructor() {
     this.exportsDir = path.join(process.cwd(), 'exports');
@@ -242,6 +244,45 @@ class ExportService {
       return { filename, filepath };
     } catch (error) {
       logger.error('[ExportService] Export insights to CSV failed:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Export users list to Excel (XLSX)
+   */
+  async exportUsersXLSX(users) {
+    try {
+      const timestamp = Date.now();
+      const filename = `users-${timestamp}.xlsx`;
+      const filepath = path.join(this.exportsDir, filename);
+
+      // Transform data for Excel
+      const data = users.map(user => ({
+        ID: user._id.toString(),
+        Name: user.name,
+        Email: user.email,
+        Role: user.role,
+        Status: user.isActive ? 'Active' : 'Suspended',
+        Nationality: user.nationality || 'N/A',
+        JoinedDate: user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A',
+        LastLogin: user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'
+      }));
+
+      // Create workbook and worksheet
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(data);
+
+      XLSX.utils.book_append_sheet(wb, ws, 'Users');
+
+      // Write file
+      XLSX.writeFile(wb, filepath);
+
+      logger.info('[ExportService] Users exported to Excel', { filename, count: users.length });
+
+      return { filename, filepath };
+    } catch (error) {
+      logger.error('[ExportService] Export to Excel failed:', error);
       throw error;
     }
   }

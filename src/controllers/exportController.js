@@ -154,3 +154,29 @@ exports.exportInsightsCSV = async (req, res) => {
     });
   }
 };
+
+/**
+ * Export users to Excel (admin)
+ * GET /api/export/users
+ */
+exports.exportUsers = async (req, res) => {
+  try {
+    const User = require('../models/User');
+    const users = await User.find({}).sort({ createdAt: -1 });
+
+    const result = await exportService.exportUsersXLSX(users);
+
+    res.download(result.filepath, result.filename, (err) => {
+      if (err) {
+        logger.error('[ExportController] Download failed:', err);
+      }
+    });
+  } catch (error) {
+    logger.error('[ExportController] Export users XLSX failed:', error);
+    res.status(HTTP_STATUS.SERVER_ERROR).json({
+      success: false,
+      message: 'Failed to export users',
+      error: error.message
+    });
+  }
+};

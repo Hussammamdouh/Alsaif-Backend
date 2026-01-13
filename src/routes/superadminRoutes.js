@@ -50,6 +50,9 @@ router.get('/audit-logs/stats', auditLogController.getAuditStats);
 router.get('/audit-logs/critical', auditLogController.getCriticalEvents);
 router.get('/audit-logs/failures', auditLogController.getFailedOperations);
 router.get('/audit-logs/user/:userId', paginationValidation, auditLogController.getUserAuditTrail);
-router.get('/audit-logs/resource/:resourceId', paginationValidation, auditLogController.getResourceAuditTrail);
+// System settings & Subscription management
+router.get('/system/settings', superadminController.getSystemSettings);
+router.post('/subscriptions/pause', superadminController.toggleSubscriptionPause);
+router.post('/subscriptions/toggle-new', superadminController.toggleNewSubscriptions);
 
 module.exports = router;

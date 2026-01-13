@@ -63,6 +63,11 @@ const NOTIFICATION_EVENTS = {
   TRENDING_CONTENT: 'content:trending',
   PERSONALIZED_DIGEST: 'content:digest',
 
+  // ========== INSIGHT REQUEST EVENTS ==========
+  INSIGHT_REQUEST_SUBMITTED: 'insight_request:submitted',
+  INSIGHT_REQUEST_APPROVED: 'insight_request:approved',
+  INSIGHT_REQUEST_REJECTED: 'insight_request:rejected',
+
   // ========== USER ENGAGEMENT EVENTS ==========
   INSIGHT_LIKED: 'engagement:insight-liked',
   INSIGHT_COMMENTED: 'engagement:insight-commented',
@@ -583,6 +588,58 @@ const emitWelcomeNewUser = (data) => {
   });
 };
 
+// ========== INSIGHT REQUEST EMITTERS ==========
+
+/**
+ * Emit insight request submitted event (to Admins)
+ */
+const emitInsightRequestSubmitted = (data) => {
+  return emitNotification(NOTIFICATION_EVENTS.INSIGHT_REQUEST_SUBMITTED, {
+    requestId: data.requestId,
+    userId: data.userId,
+    userName: data.userName,
+    title: data.title,
+    message: `New insight request from ${data.userName}: ${data.title}`,
+    adminUrl: `/admin/insights/requests`
+  }, {
+    priority: NOTIFICATION_PRIORITIES.HIGH,
+    channels: [NOTIFICATION_CHANNELS.EMAIL, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
+/**
+ * Emit insight request approved event (to User)
+ */
+const emitInsightRequestApproved = (data) => {
+  return emitNotification(NOTIFICATION_EVENTS.INSIGHT_REQUEST_APPROVED, {
+    userId: data.userId,
+    title: data.title,
+    targetType: data.targetType,
+    targetId: data.targetId,
+    message: `Your insight request "${data.title}" has been approved!`,
+    ctaUrl: data.targetType.includes('chat') ? `/chats/${data.targetId}` : `/insights/${data.targetId}`
+  }, {
+    priority: NOTIFICATION_PRIORITIES.HIGH,
+    channels: [NOTIFICATION_CHANNELS.EMAIL, NOTIFICATION_CHANNELS.PUSH, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
+/**
+ * Emit insight request rejected event (to User)
+ */
+const emitInsightRequestRejected = (data) => {
+  return emitNotification(NOTIFICATION_EVENTS.INSIGHT_REQUEST_REJECTED, {
+    userId: data.userId,
+    title: data.title,
+    reason: data.reason,
+    message: `Your insight request "${data.title}" was rejected.`,
+    rejectionReason: data.reason
+  }, {
+    priority: NOTIFICATION_PRIORITIES.MEDIUM,
+    channels: [NOTIFICATION_CHANNELS.EMAIL, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
 // ==================== EXPORTS ====================
 
 module.exports = {
@@ -624,5 +681,10 @@ module.exports = {
   emitPremiumAccessDenied,
 
   // System
-  emitWelcomeNewUser
+  emitWelcomeNewUser,
+
+  // Insight requests
+  emitInsightRequestSubmitted,
+  emitInsightRequestApproved,
+  emitInsightRequestRejected
 };

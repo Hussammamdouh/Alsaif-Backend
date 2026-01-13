@@ -11,7 +11,88 @@ const logger = require('../utils/logger');
 const bcrypt = require('bcryptjs');
 const mongoose = require('mongoose');
 
+const SystemSettings = require('../models/SystemSettings');
+const Subscription = require('../models/Subscription');
+
 class SuperadminService {
+  /**
+   * Toggle system-wide subscription pause
+   */
+  async toggleSubscriptionPause(paused, adminId) {
+    try {
+      const settings = await SystemSettings.getSettings();
+      const wasPaused = settings.isSubscriptionsPaused;
+
+      if (wasPaused === paused) return settings;
+
+      settings.isSubscriptionsPaused = paused;
+      settings.updatedBy = adminId;
+
+      if (paused) {
+        settings.pausedAt = new Date();
+      } else {
+        // Resume logic: extend all active subscriptions
+        const pauseEnd = new Date();
+        const pauseStart = settings.pausedAt;
+
+        if (pauseStart) {
+          const pauseDurationMs = pauseEnd - pauseStart;
+
+          // Find all subscriptions that were active when paused or currently active
+          // and push their endDate forward by pauseDurationMs
+          await Subscription.updateMany(
+            { status: { $in: ['active', 'trial'] } },
+            [
+              {
+                $set: {
+                  endDate: {
+                    $add: ['$endDate', pauseDurationMs]
+                  }
+                }
+              }
+            ]
+          );
+        }
+        settings.pausedAt = null;
+      }
+
+      await settings.save();
+
+      logger.info(`[Superadmin] Subscriptions ${paused ? 'paused' : 'resumed'} by admin: ${adminId}`);
+
+      return settings;
+    } catch (error) {
+      logger.error('[Superadmin] Failed to toggle subscription pause:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * Toggle new subscription availability
+   */
+  async toggleNewSubscriptions(enabled, message, adminId) {
+    try {
+      const settings = await SystemSettings.getSettings();
+      settings.isNewSubscriptionsEnabled = enabled;
+      if (message) settings.subscriptionDisabledMessage = message;
+      settings.updatedBy = adminId;
+
+      await settings.save();
+
+      logger.info(`[Superadmin] New subscriptions ${enabled ? 'enabled' : 'disabled'} by admin: ${adminId}`);
+
+      return settings;
+    } catch (error) {
+      logger.error('[Superadmin] Failed to toggle new subscriptions:', error);
+      throw error;
+    }
+  }
+
+  /**
+   * @deprecated Use the newer toggleSubscriptionPause instead
+   */
+  // ... existing methods (I will just append them after my new ones)
+
   /**
    * Get all users with detailed information
    */

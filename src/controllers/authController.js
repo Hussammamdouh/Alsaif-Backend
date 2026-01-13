@@ -4,13 +4,13 @@ const { HTTP_STATUS, SUCCESS_MESSAGES } = require('../constants');
 class AuthController {
   async register(req, res, next) {
     try {
-      const { name, email, password } = req.body;
+      const { name, email, password, nationality } = req.body;
       const deviceInfo = {
         userAgent: req.headers['user-agent'],
         ip: req.ip || req.connection.remoteAddress
       };
 
-      const result = await authService.register({ name, email, password }, deviceInfo);
+      const result = await authService.register({ name, email, password, nationality }, deviceInfo);
 
       res.status(HTTP_STATUS.CREATED).json({
         success: true,

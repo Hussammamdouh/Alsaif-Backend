@@ -29,7 +29,7 @@ const userSchema = new mongoose.Schema(
       minlength: [8, 'Password must be at least 8 characters'], // SECURITY: Increased from 6 to 8
       select: false,
       validate: {
-        validator: function(password) {
+        validator: function (password) {
           // SECURITY FIX: Enforce stronger password requirements
           // At least 8 characters with mix of letters and numbers
           return /^(?=.*[a-zA-Z])(?=.*[0-9]).{8,}$/.test(password);
@@ -103,6 +103,15 @@ const userSchema = new mongoose.Schema(
     followingCount: {
       type: Number,
       default: 0
+    },
+    nationality: {
+      type: String,
+      trim: true,
+      default: null
+    },
+    isBannedFromInsights: {
+      type: Boolean,
+      default: false
     }
   },
   {

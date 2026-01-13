@@ -1,4 +1,5 @@
 const express = require('express');
+const compression = require('compression');
 const cors = require('cors');
 const authRoutes = require('./routes/authRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -15,6 +16,7 @@ const notificationRoutes = require('./routes/notificationRoutes');
 const bannerRoutes = require('./routes/bannerRoutes');
 const jobRoutes = require('./routes/jobRoutes');
 const groupChatRoutes = require('./routes/groupChatRoutes');
+const marketRoutes = require('./routes/marketRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { securityHeaders, mongoSanitizer, loginLimiter, registerLimiter } = require('./middleware/security');
 const {
@@ -56,7 +58,10 @@ pushNotificationService.initialize().catch((error) => {
 
 // Initialize performance monitoring service
 const performanceMonitoringService = require('./services/performanceMonitoringService');
-performanceMonitoringService.initialize();
+// Market Data Service initialization moved to server.js to ensure DB connection
+const marketDataService = require('./services/marketDataService');
+// marketDataService.initialize() is now handled in server.js
+
 
 // Export startWorker for server.js to call after DB connection
 app.startWorker = startWorker;
@@ -66,6 +71,7 @@ app.set('trust proxy', 1);
 
 // Security middleware
 app.use(securityHeaders());
+app.use(compression());
 app.use(mongoSanitizer());
 
 // CORS configuration
@@ -233,6 +239,9 @@ app.use('/api/export', exportRoutes);
 // Push notification routes (Web Push API)
 const pushNotificationRoutes = require('./routes/pushNotificationRoutes');
 app.use('/api/push', pushNotificationRoutes);
+
+// Market Data Routes
+app.use('/api/market', marketRoutes);
 
 // Static file serving for uploaded images
 app.use('/uploads', express.static('public/uploads'));

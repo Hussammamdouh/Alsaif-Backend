@@ -4,8 +4,17 @@ const { PORT, NODE_ENV } = require('./src/config/env');
 const logger = require('./src/utils/logger');
 const initializeSocket = require('./src/socket');
 
+const marketDataService = require('./src/services/marketDataService');
+
 // Connect to database and start worker after connection
-connectDB().then(() => {
+connectDB().then(async () => {
+  // Initialize Market Data Service (now that DB is ready)
+  try {
+    await marketDataService.initialize();
+  } catch (err) {
+    logger.error('[Server] Failed to initialize MarketDataService:', err);
+  }
+
   // Start background job worker after DB is connected
   app.startWorker({
     concurrency: process.env.JOB_WORKER_CONCURRENCY || 10,

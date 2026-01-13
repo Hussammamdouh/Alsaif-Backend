@@ -13,3 +13,5 @@ coverage/
 /coverage
 
 .vercel
+/gemini
+/backups

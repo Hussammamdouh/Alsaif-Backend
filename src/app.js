@@ -18,6 +18,7 @@ const jobRoutes = require('./routes/jobRoutes');
 const groupChatRoutes = require('./routes/groupChatRoutes');
 const marketRoutes = require('./routes/marketRoutes');
 const insightRequestRoutes = require('./routes/insightRequestRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { securityHeaders, mongoSanitizer, loginLimiter, registerLimiter } = require('./middleware/security');
 const {
@@ -55,6 +56,12 @@ backupScheduler.initialize().catch((error) => {
 const pushNotificationService = require('./services/pushNotificationService');
 pushNotificationService.initialize().catch((error) => {
   logger.error('[App] Failed to initialize push notification service:', error);
+});
+
+// Initialize mobile push service
+const mobilePushService = require('./services/mobilePushService');
+mobilePushService.initialize().catch((error) => {
+  logger.error('[App] Failed to initialize mobile push service:', error);
 });
 
 // Initialize performance monitoring service
@@ -202,6 +209,9 @@ app.use('/api/comments', commentRoutes);
 // Search routes (public)
 const searchRoutes = require('./routes/searchRoutes');
 app.use('/api/search', searchRoutes);
+
+// Report routes
+app.use('/api/reports', reportRoutes);
 
 // Media routes (upload/download)
 const mediaRoutes = require('./routes/mediaRoutes');

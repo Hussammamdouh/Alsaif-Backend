@@ -128,29 +128,33 @@ async function handlePushJob(payload, job) {
     // Send push notification
     const result = await pushNotificationService.sendToUser(userId, pushPayload);
 
-    if (result.sent > 0) {
+    // Mobile Push Integration
+    const mobilePushService = require('../services/mobilePushService');
+    const mobileResults = await mobilePushService.sendToUser(userId, pushPayload);
+
+    if (result.sent > 0 || mobileResults.sent > 0) {
       await notification.updateChannelStatus('push', 'sent', {
         sentAt: new Date(),
-        pushId: `web-push-${Date.now()}`,
-        sentCount: result.sent,
-        failedCount: result.failed
+        pushId: `push-${Date.now()}`,
+        sentCount: (result.sent || 0) + (mobileResults.sent || 0),
+        failedCount: (result.failed || 0) + (mobileResults.failed || 0)
       });
 
       logger.info(
-        `[PushHandler] Push sent successfully for notification: ${notificationId} (sent: ${result.sent}, failed: ${result.failed})`
+        `[PushHandler] Push sent successfully for notification: ${notificationId} (Web: ${result.sent}, Mobile: ${mobileResults.sent})`
       );
-    } else if (result.failed > 0) {
+    } else if (result.failed > 0 || mobileResults.failed > 0) {
       // All sends failed
       await notification.updateChannelStatus('push', 'failed', {
-        errorMessage: 'All push sends failed',
+        errorMessage: 'All push sends failed (Web and Mobile)',
         failedAt: new Date(),
-        failedCount: result.failed
+        failedCount: (result.failed || 0) + (mobileResults.failed || 0)
       });
 
-      throw new Error(`All ${result.failed} push sends failed`);
+      throw new Error(`All push sends failed (Web: ${result.failed}, Mobile: ${mobileResults.failed})`);
     } else {
       // No active subscriptions
-      logger.info(`[PushHandler] No active push subscriptions for user: ${userId}`);
+      logger.info(`[PushHandler] No active push subscriptions (Web or Mobile) for user: ${userId}`);
       await notification.updateChannelStatus('push', 'sent', {
         sentAt: new Date(),
         pushId: 'no-subscriptions'

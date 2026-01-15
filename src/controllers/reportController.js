@@ -4,6 +4,7 @@ const Insight = require('../models/Insight');
 const Comment = require('../models/Comment');
 const { HTTP_STATUS, ERROR_MESSAGES } = require('../constants');
 const logger = require('../utils/logger');
+const { emitContentReported } = require('../events/enhancedNotificationEvents');
 
 class ReportController {
     /**
@@ -83,6 +84,15 @@ class ReportController {
                     resolved: false,
                 });
             }
+
+            // NOTIFICATION: Notify Admins
+            emitContentReported({
+                reportId: report._id,
+                contentType: targetType,
+                contentId: targetId,
+                reporterId: userId,
+                reason: reason
+            });
 
             logger.info(`[ReportController] User ${userId} reported ${targetType} ${targetId}`);
 

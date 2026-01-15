@@ -1,7 +1,9 @@
 const Chat = require('../models/Chat');
 const Message = require('../models/Message');
+const User = require('../models/User');
 const { CHAT_TYPES, CHAT_PERMISSIONS, ERROR_MESSAGES } = require('../constants');
 const { sanitizeMessage } = require('../utils/sanitizer');
+const { emitChatMessageReceived } = require('../events/enhancedNotificationEvents');
 
 class ChatService {
   async createPrivateChat(user1Id, user2Id, initialMessage = null) {
@@ -164,6 +166,22 @@ class ChatService {
         }
       });
     }
+
+    // NOTIFICATION: Notify other participants
+    const sender = await User.findById(senderId).select('name');
+    const recipientIds = chat.participants
+      .filter(p => p.user.toString() !== senderId.toString())
+      .map(p => p.user);
+
+    emitChatMessageReceived({
+      chatId: chat._id,
+      senderId: senderId,
+      senderName: sender.name,
+      content: sanitizedContent,
+      recipientIds: recipientIds,
+      chatName: chat.name || (chat.type === CHAT_TYPES.PRIVATE ? sender.name : 'Group Chat'),
+      isGroup: chat.type === CHAT_TYPES.GROUP
+    });
 
     return message;
   }

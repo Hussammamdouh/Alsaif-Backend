@@ -7,6 +7,7 @@ const DiscountCode = require('../models/DiscountCode');
 const { HTTP_STATUS } = require('../constants');
 const logger = require('../utils/logger');
 const AuditLogger = require('../utils/auditLogger');
+const { emitPromoCodeCreated } = require('../events/enhancedNotificationEvents');
 
 /**
  * Get all discount codes
@@ -146,6 +147,13 @@ exports.createCode = async (req, res, next) => {
       action: 'DISCOUNT_CODE_CREATED',
       target: { resourceType: 'DiscountCode', resourceId: discountCode._id, resourceName: discountCode.code },
       metadata: { type, value },
+    });
+
+    // NOTIFICATION: Notify free users
+    emitPromoCodeCreated({
+      code: discountCode.code,
+      discount: type === 'percentage' ? `${value}%` : `${value} ${currency}`,
+      expiry: discountCode.validUntil
     });
 
     res.status(HTTP_STATUS.CREATED).json({

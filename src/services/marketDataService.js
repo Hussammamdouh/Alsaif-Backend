@@ -4,6 +4,7 @@ const cron = require('node-cron');
 const MarketData = require('../models/MarketData');
 const logger = require('../utils/logger');
 const axios = require('axios');
+const { emitMarketOpened, emitMarketClosed } = require('../events/enhancedNotificationEvents');
 
 // Puppeteer Setup for ADX "Direct-Data" Interception
 const puppeteer = require('puppeteer-extra');
@@ -95,7 +96,21 @@ class MarketDataService {
     }
 
     async checkAndFetch() {
-        if (this.isMarketOpen()) {
+        const isOpen = this.isMarketOpen();
+
+        // NOTIFICATION: Detect State Transition
+        if (this.lastMarketStatus !== undefined && this.lastMarketStatus !== isOpen) {
+            if (isOpen) {
+                logger.info('[MarketDataService] Market OPENED - Sending Notifications');
+                emitMarketOpened();
+            } else {
+                logger.info('[MarketDataService] Market CLOSED - Sending Notifications');
+                emitMarketClosed();
+            }
+        }
+        this.lastMarketStatus = isOpen;
+
+        if (isOpen) {
             await this.fetchMarketData();
         }
     }

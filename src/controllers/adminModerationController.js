@@ -9,6 +9,7 @@ const FlaggedContent = require('../models/FlaggedContent');
 const { HTTP_STATUS, AUDIT_ACTIONS } = require('../constants');
 const logger = require('../utils/logger');
 const AuditLogger = require('../utils/auditLogger');
+const { emitModerationActionTaken, emitInsightPublished } = require('../events/enhancedNotificationEvents');
 
 /**
  * Get moderation queue
@@ -97,6 +98,22 @@ exports.approveInsight = async (req, res, next) => {
       metadata: { published: publish, note },
     });
 
+    // NOTIFICATION: Notify User
+    emitModerationActionTaken({
+      userId: insight.author,
+      action: publish ? 'published' : 'approved',
+      reason: note || 'Content meets community standards',
+      contentType: 'insight'
+    });
+
+    if (publish) {
+      emitInsightPublished({
+        insight,
+        authorId: insight.author,
+        type: insight.type
+      });
+    }
+
     res.json({
       success: true,
       message: `Insight approved${publish ? ' and published' : ''}`,
@@ -148,6 +165,14 @@ exports.rejectInsight = async (req, res, next) => {
       metadata: { reason, note },
     });
 
+    // NOTIFICATION: Notify User
+    emitModerationActionTaken({
+      userId: insight.author,
+      action: 'rejected',
+      reason: reason || note || 'Does not meet community standards',
+      contentType: 'insight'
+    });
+
     res.json({
       success: true,
       message: 'Insight rejected',
@@ -194,6 +219,14 @@ exports.requestChanges = async (req, res, next) => {
       action: 'CHANGES_REQUESTED',
       target: { resourceType: 'Insight', resourceId: insight._id, resourceName: insight.title },
       metadata: { changes },
+    });
+
+    // NOTIFICATION: Notify User
+    emitModerationActionTaken({
+      userId: insight.author,
+      action: 'changes_requested',
+      reason: changes,
+      contentType: 'insight'
     });
 
     res.json({

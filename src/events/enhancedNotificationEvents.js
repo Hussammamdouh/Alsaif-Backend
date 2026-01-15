@@ -88,6 +88,18 @@ const NOTIFICATION_EVENTS = {
   SECURITY_ALERT: 'system:security-alert',
   SYSTEM_ANNOUNCEMENT: 'system:announcement',
   MAINTENANCE_SCHEDULED: 'system:maintenance',
+  PROMO_CODE_CREATED: 'system:promo-code-created',
+
+  // ========== CHAT EVENTS ==========
+  CHAT_MESSAGE_RECEIVED: 'chat:message-received',
+
+  // ========== MARKET EVENTS ==========
+  MARKET_OPENED: 'market:opened',
+  MARKET_CLOSED: 'market:closed',
+
+  // ========== MODERATION & REPORTING EVENTS ==========
+  CONTENT_REPORTED: 'moderation:content-reported',
+  MODERATION_ACTION_TAKEN: 'moderation:action-taken',
 
   // ========== PAYMENT EVENTS (Future) ==========
   PAYMENT_SUCCESS: 'payment:success',
@@ -640,6 +652,111 @@ const emitInsightRequestRejected = (data) => {
   });
 };
 
+// ========== CHAT EMITTERS ==========
+
+/**
+ * Emit chat message received event
+ */
+const emitChatMessageReceived = (data) => {
+  return emitNotification(NOTIFICATION_EVENTS.CHAT_MESSAGE_RECEIVED, {
+    chatId: data.chatId,
+    senderId: data.senderId,
+    senderName: data.senderName,
+    content: data.content,
+    recipientIds: data.recipientIds, // Array of user IDs to notify
+    chatName: data.chatName,
+    isGroup: data.isGroup,
+    url: `/chats/${data.chatId}`
+  }, {
+    priority: NOTIFICATION_PRIORITIES.HIGH,
+    channels: [NOTIFICATION_CHANNELS.PUSH, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
+// ========== MARKET EMITTERS ==========
+
+/**
+ * Emit market opened event
+ */
+const emitMarketOpened = () => {
+  return emitNotification(NOTIFICATION_EVENTS.MARKET_OPENED, {
+    message: 'The market is now OPEN! Happy trading.',
+    status: 'open',
+    url: '/market'
+  }, {
+    priority: NOTIFICATION_PRIORITIES.HIGH,
+    channels: [NOTIFICATION_CHANNELS.PUSH, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
+/**
+ * Emit market closed event
+ */
+const emitMarketClosed = () => {
+  return emitNotification(NOTIFICATION_EVENTS.MARKET_CLOSED, {
+    message: 'The market is now CLOSED.',
+    status: 'closed',
+    url: '/market'
+  }, {
+    priority: NOTIFICATION_PRIORITIES.MEDIUM,
+    channels: [NOTIFICATION_CHANNELS.PUSH, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
+// ========== MODERATION EMITTERS ==========
+
+/**
+ * Emit content reported event (To Admins)
+ */
+const emitContentReported = (data) => {
+  return emitNotification(NOTIFICATION_EVENTS.CONTENT_REPORTED, {
+    reportId: data.reportId,
+    contentType: data.contentType,
+    contentId: data.contentId,
+    reporterId: data.reporterId,
+    reason: data.reason,
+    message: `New cleanup/report on ${data.contentType}: ${data.reason}`,
+    adminUrl: `/admin/reports`
+  }, {
+    priority: NOTIFICATION_PRIORITIES.HIGH,
+    channels: [NOTIFICATION_CHANNELS.EMAIL, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
+/**
+ * Emit moderation action taken event (To User)
+ */
+const emitModerationActionTaken = (data) => {
+  return emitNotification(NOTIFICATION_EVENTS.MODERATION_ACTION_TAKEN, {
+    userId: data.userId,
+    action: data.action,
+    reason: data.reason,
+    contentType: data.contentType,
+    message: `Moderation action taken: Your ${data.contentType} was ${data.action}. Reason: ${data.reason}`
+  }, {
+    priority: NOTIFICATION_PRIORITIES.MEDIUM,
+    channels: [NOTIFICATION_CHANNELS.EMAIL, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
+// ========== PROMO CODE EMITTERS ==========
+
+/**
+ * Emit promo code created event (To free users)
+ */
+const emitPromoCodeCreated = (data) => {
+  return emitNotification(NOTIFICATION_EVENTS.PROMO_CODE_CREATED, {
+    code: data.code,
+    discount: data.discount,
+    expiry: data.expiry,
+    message: `New Promo Code available: Use ${data.code} for ${data.discount} off!`,
+    ctaUrl: '/subscriptions/upgrade'
+  }, {
+    priority: NOTIFICATION_PRIORITIES.HIGH,
+    channels: [NOTIFICATION_CHANNELS.PUSH, NOTIFICATION_CHANNELS.IN_APP]
+  });
+};
+
 // ==================== EXPORTS ====================
 
 module.exports = {
@@ -686,5 +803,19 @@ module.exports = {
   // Insight requests
   emitInsightRequestSubmitted,
   emitInsightRequestApproved,
-  emitInsightRequestRejected
+  emitInsightRequestRejected,
+
+  // Chat
+  emitChatMessageReceived,
+
+  // Market
+  emitMarketOpened,
+  emitMarketClosed,
+
+  // Moderation
+  emitContentReported,
+  emitModerationActionTaken,
+
+  // Promo Codes
+  emitPromoCodeCreated
 };

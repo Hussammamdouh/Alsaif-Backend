@@ -29,6 +29,24 @@ class InsightRequestController {
     }
 
     /**
+     * Get user's own requests
+     * GET /api/insight-requests/my
+     */
+    async getMyRequests(req, res, next) {
+        try {
+            const { page, limit } = getPaginationParams(req.query);
+            const result = await insightRequestService.getUserRequests(req.user.id, { page, limit });
+
+            res.status(HTTP_STATUS.OK).json({
+                success: true,
+                data: result
+            });
+        } catch (error) {
+            next(error);
+        }
+    }
+
+    /**
      * Get all insight requests (Admin)
      * GET /api/admin/insights/requests
      */

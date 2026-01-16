@@ -50,6 +50,31 @@ class InsightRequestService {
     }
 
     /**
+     * Get user's own requests
+     */
+    async getUserRequests(userId, pagination = {}) {
+        const { page = 1, limit = 10 } = pagination;
+        const skip = (page - 1) * limit;
+
+        const [requests, total] = await Promise.all([
+            InsightRequest.find({ user: userId })
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit),
+            InsightRequest.countDocuments({ user: userId })
+        ]);
+
+        return {
+            requests,
+            pagination: {
+                currentPage: page,
+                totalPages: Math.ceil(total / limit),
+                totalItems: total
+            }
+        };
+    }
+
+    /**
      * Get all requests (Admin)
      */
     async getAllRequests(query = {}, pagination = {}) {

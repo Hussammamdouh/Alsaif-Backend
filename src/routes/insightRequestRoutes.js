@@ -34,6 +34,13 @@ router.post(
     insightRequestController.submitRequest
 );
 
+// Get user's own requests
+router.get(
+    '/my',
+    authenticateToken,
+    insightRequestController.getMyRequests
+);
+
 // ==================== ADMIN ROUTES ====================
 
 // Moderation and list routes
@@ -70,7 +77,7 @@ router.post(
 
 // Ban/Unban user from insights
 router.post(
-    '/users/:userId/ban',
+    '/ban/:userId',
     [
         param('userId').isMongoId().withMessage('Invalid user ID'),
         body('isBanned').isBoolean().withMessage('isBanned must be a boolean'),

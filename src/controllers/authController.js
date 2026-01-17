@@ -4,13 +4,13 @@ const { HTTP_STATUS, SUCCESS_MESSAGES } = require('../constants');
 class AuthController {
   async register(req, res, next) {
     try {
-      const { name, email, password, nationality } = req.body;
+      const { name, email, password, nationality, phoneNumber, country } = req.body;
       const deviceInfo = {
         userAgent: req.headers['user-agent'],
         ip: req.ip || req.connection.remoteAddress
       };
 
-      const result = await authService.register({ name, email, password, nationality }, deviceInfo);
+      const result = await authService.register({ name, email, password, nationality, phoneNumber, country }, deviceInfo);
 
       res.status(HTTP_STATUS.CREATED).json({
         success: true,
@@ -24,13 +24,13 @@ class AuthController {
 
   async login(req, res, next) {
     try {
-      const { email, password } = req.body;
+      const { identifier, password } = req.body;
       const deviceInfo = {
         userAgent: req.headers['user-agent'],
         ip: req.ip || req.connection.remoteAddress
       };
 
-      const result = await authService.login(email, password, deviceInfo);
+      const result = await authService.login(identifier, password, deviceInfo);
 
       res.status(HTTP_STATUS.OK).json({
         success: true,

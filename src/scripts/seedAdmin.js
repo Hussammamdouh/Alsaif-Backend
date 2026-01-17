@@ -11,9 +11,9 @@ const connectDB = require('../config/database');
 const logger = require('../utils/logger');
 const AuditLogger = require('../utils/auditLogger');
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@elsaif.com';
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'Admin123!';
-const ADMIN_NAME = process.env.ADMIN_NAME || 'Admin User';
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'alsaifanalysis@gmail.com';
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || 'AlsaifAnalysis$0';
+const ADMIN_NAME = process.env.ADMIN_NAME || 'Alsaif Admin';
 
 async function seedAdmin() {
   try {

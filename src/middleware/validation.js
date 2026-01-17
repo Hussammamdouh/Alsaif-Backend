@@ -27,17 +27,26 @@ const registerValidation = [
     .normalizeEmail()
     .withMessage(ERROR_MESSAGES.INVALID_EMAIL),
   body('password')
-    .isLength({ min: 6 })
+    .isLength({ min: 8 })
     .withMessage(ERROR_MESSAGES.PASSWORD_TOO_SHORT),
+  body('phoneNumber')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Phone number cannot be empty if provided'),
+  body('country')
+    .optional()
+    .trim()
+    .notEmpty()
+    .withMessage('Country cannot be empty if provided'),
   validate
 ];
 
 const loginValidation = [
-  body('email')
+  body('identifier')
     .trim()
-    .isEmail()
-    .normalizeEmail()
-    .withMessage(ERROR_MESSAGES.INVALID_EMAIL),
+    .notEmpty()
+    .withMessage('Email or Phone Number is required'),
   body('password')
     .notEmpty()
     .withMessage('Password is required'),

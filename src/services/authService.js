@@ -12,13 +12,19 @@ const logger = require('../utils/logger');
 
 class AuthService {
   async register(userData, deviceInfo = {}) {
-    const { name, email, password, nationality } = userData;
+    const { name, email, password, nationality, phoneNumber, country } = userData;
 
     // SECURITY FIX (HIGH-002): Prevent user enumeration via timing-safe check
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
+    // Check if user already exists by email or phoneNumber
+    const existingUser = await User.findOne({
+      $or: [
+        { email },
+        { phoneNumber: phoneNumber || 'NON_EXISTENT_PHONE' }
+      ]
+    });
+
     if (existingUser) {
-      // Use generic message to prevent email enumeration
+      // Use generic message to prevent enumeration
       throw new Error(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
@@ -28,6 +34,8 @@ class AuthService {
       email,
       password,
       nationality,
+      phoneNumber,
+      country,
       role: ROLES.USER
     });
 
@@ -71,9 +79,14 @@ class AuthService {
     };
   }
 
-  async login(email, password, deviceInfo = {}) {
-    // Find user and include password field
-    const user = await User.findOne({ email }).select('+password');
+  async login(identifier, password, deviceInfo = {}) {
+    // Find user by email or phone number and include password field
+    const user = await User.findOne({
+      $or: [
+        { email: identifier.toLowerCase() },
+        { phoneNumber: identifier }
+      ]
+    }).select('+password');
 
     if (!user) {
       throw new Error(ERROR_MESSAGES.INVALID_CREDENTIALS);

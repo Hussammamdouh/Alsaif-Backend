@@ -104,6 +104,18 @@ const userSchema = new mongoose.Schema(
       type: Number,
       default: 0
     },
+    phoneNumber: {
+      type: String,
+      trim: true,
+      unique: true,
+      sparse: true,
+      index: true
+    },
+    country: {
+      type: String,
+      trim: true,
+      default: null
+    },
     nationality: {
       type: String,
       trim: true,

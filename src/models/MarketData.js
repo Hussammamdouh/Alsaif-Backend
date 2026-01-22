@@ -28,7 +28,11 @@ const marketDataSchema = new mongoose.Schema({
     lastUpdated: {
         type: Date,
         default: Date.now
-    }
+    },
+    chartData: [{
+        timestamp: Date,
+        price: Number
+    }]
 }, {
     timestamps: true
 });

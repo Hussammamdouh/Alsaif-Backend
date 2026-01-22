@@ -19,7 +19,6 @@ const groupChatRoutes = require('./routes/groupChatRoutes');
 const reportRoutes = require('./routes/reportRoutes');
 const marketRoutes = require('./routes/marketRoutes');
 const insightRequestRoutes = require('./routes/insightRequestRoutes');
-const newsRoutes = require('./routes/newsRoutes');
 const { errorHandler, notFound } = require('./middleware/errorHandler');
 const { securityHeaders, mongoSanitizer, loginLimiter, registerLimiter } = require('./middleware/security');
 const {
@@ -257,8 +256,9 @@ app.use('/api/push', pushNotificationRoutes);
 // Market Data Routes
 app.use('/api/market', marketRoutes);
 
-// News Routes
-app.use('/api/news', newsRoutes);
+// Disclosure Routes
+const disclosureRoutes = require('./routes/disclosureRoutes');
+app.use('/api/disclosures', disclosureRoutes);
 
 // Static file serving for uploaded images
 app.use('/uploads', express.static('public/uploads'));

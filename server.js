@@ -5,7 +5,7 @@ const logger = require('./src/utils/logger');
 const initializeSocket = require('./src/socket');
 
 const marketDataService = require('./src/services/marketDataService');
-const newsService = require('./src/services/newsService');
+const disclosureService = require('./src/services/disclosureService');
 
 // Connect to database and start worker after connection
 connectDB().then(async () => {
@@ -16,11 +16,11 @@ connectDB().then(async () => {
     logger.error('[Server] Failed to initialize MarketDataService:', err);
   }
 
-  // Initialize News Service
+  // Initialize Disclosure Service
   try {
-    await newsService.initialize();
+    await disclosureService.initialize();
   } catch (err) {
-    logger.error('[Server] Failed to initialize NewsService:', err);
+    logger.error('[Server] Failed to initialize DisclosureService:', err);
   }
 
   // Start background job worker after DB is connected

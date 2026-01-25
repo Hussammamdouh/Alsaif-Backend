@@ -1,4 +1,5 @@
 const Insight = require('../models/Insight');
+const InsightVersion = require('../models/InsightVersion');
 const AuditLogger = require('../utils/auditLogger');
 const logger = require('../utils/logger');
 const { HTTP_STATUS, ERROR_MESSAGES, AUDIT_ACTIONS, CONTENT_ACCESS } = require('../constants');
@@ -48,6 +49,9 @@ class InsightController {
         status: scheduledFor ? 'scheduled' : (status || 'draft'),
         scheduledFor: scheduledFor || null
       });
+
+      // VERSIONING: Create initial version
+      await InsightVersion.createVersion(insight, req.user.id, 'Initial creation', 'created');
 
       // Audit log
       await AuditLogger.logFromRequest(req, {
@@ -293,6 +297,9 @@ class InsightController {
       }
 
       await insight.restore();
+
+      // VERSIONING: Create version for restoration
+      await InsightVersion.createVersion(insight, req.user.id, 'Restored from soft delete', 'restored');
 
       // Audit log
       await AuditLogger.logFromRequest(req, {
@@ -806,31 +813,17 @@ class InsightController {
       // Recalculate total based on filtered results
       const filteredTotal = filteredInsights.length;
 
-      // Add hasLiked status if user is authenticated and transform IDs
-      let insightsWithLikeStatus;
-      if (req.user) {
-        const Like = require('../models/Like');
-        insightsWithLikeStatus = await Promise.all(
-          filteredInsights.map(async (insight) => {
-            const insightObj = insight.toObject ? insight.toObject() : insight;
-            insightObj.hasLiked = await Like.hasLiked(req.user.id, insight._id);
-            insightObj.id = insightObj._id.toString();
-            return insightObj;
-          })
-        );
-      } else {
-        insightsWithLikeStatus = filteredInsights.map(insight => {
-          const insightObj = insight.toObject ? insight.toObject() : insight;
-          insightObj.id = insightObj._id.toString();
-          return insightObj;
-        });
-      }
+      const processedInsights = filteredInsights.map(insight => {
+        const insightObj = insight.toObject ? insight.toObject() : insight;
+        insightObj.id = insightObj._id.toString();
+        return insightObj;
+      });
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
         message: 'Published insights retrieved successfully',
         data: {
-          insights: insightsWithLikeStatus,
+          insights: processedInsights,
           pagination: {
             currentPage: page,
             totalPages: Math.ceil(filteredTotal / limit),
@@ -907,23 +900,14 @@ class InsightController {
         logger.error('Failed to increment views:', { error: err.message, insightId: insight._id })
       );
 
-      // Add hasLiked status if authenticated
-      let hasLiked = false;
-      if (req.user) {
-        const Like = require('../models/Like');
-        hasLiked = await Like.hasLiked(req.user.id, insight._id);
-      }
-
       const insightData = insight.toObject();
       insightData.id = insightData._id.toString();
-      insightData.hasLiked = hasLiked;
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
         message: 'Insight retrieved successfully',
         data: {
-          insight: insightData,
-          hasLiked: hasLiked
+          insight: insightData
         }
       });
     } catch (error) {
@@ -964,18 +948,11 @@ class InsightController {
       // SUBSCRIPTION FILTERING: Filter featured insights by subscription tier
       insights = await filterInsightsBySubscription(insights, req.user);
 
-      // Add hasLiked status if authenticated and transform IDs
-      const Like = req.user ? require('../models/Like') : null;
-      const insightsWithStatus = await Promise.all(
-        insights.map(async (insight) => {
-          const insightObj = insight.toObject ? insight.toObject() : insight;
-          if (req.user) {
-            insightObj.hasLiked = await Like.hasLiked(req.user.id, insight._id);
-          }
-          insightObj.id = insightObj._id.toString();
-          return insightObj;
-        })
-      );
+      const insightsWithStatus = insights.map(insight => {
+        const insightObj = insight.toObject ? insight.toObject() : insight;
+        insightObj.id = insightObj._id.toString();
+        return insightObj;
+      });
 
       const response = {
         success: true,
@@ -992,42 +969,6 @@ class InsightController {
     }
   }
 
-  /**
-   * Like insight (Authenticated users)
-   * POST /api/insights/:insightId/like
-   */
-  async likeInsight(req, res, next) {
-    try {
-      const { insightId } = req.params;
-
-      const insight = await Insight.findOne({
-        _id: insightId,
-        status: 'published',
-        isDeleted: false
-      });
-
-      if (!insight) {
-        return res.status(HTTP_STATUS.NOT_FOUND).json({
-          success: false,
-          message: 'Insight not found'
-        });
-      }
-
-      const Like = require('../models/Like');
-      const { liked, count } = await Like.toggleLike(req.user.id, insightId);
-
-      res.status(HTTP_STATUS.OK).json({
-        success: true,
-        message: liked ? 'Insight liked successfully' : 'Insight unliked successfully',
-        data: {
-          liked,
-          likes: insight.likes + count
-        }
-      });
-    } catch (error) {
-      next(error);
-    }
-  }
 }
 
 module.exports = new InsightController();

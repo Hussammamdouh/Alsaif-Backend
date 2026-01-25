@@ -21,7 +21,7 @@ const subscriptionSchema = new mongoose.Schema(
     tier: {
       type: String,
       required: true,
-      enum: ['free', 'premium'],
+      enum: ['free', 'basic', 'starter', 'premium', 'pro', 'enterprise'],
       default: 'free',
       index: true,
     },

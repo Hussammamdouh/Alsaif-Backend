@@ -117,11 +117,6 @@ const insightSchema = new mongoose.Schema(
       min: 0
     },
 
-    likes: {
-      type: Number,
-      default: 0,
-      min: 0
-    },
 
     commentsCount: {
       type: Number,
@@ -283,10 +278,6 @@ insightSchema.methods.incrementViews = async function () {
   return this.save();
 };
 
-insightSchema.methods.incrementLikes = async function () {
-  this.likes += 1;
-  return this.save();
-};
 
 insightSchema.methods.moderate = async function (adminId, notes = '') {
   this.moderatedBy = adminId;
@@ -397,15 +388,6 @@ insightSchema.statics.getStats = async function () {
             }
           }
         ],
-        totalLikes: [
-          { $match: { isDeleted: false } },
-          {
-            $group: {
-              _id: null,
-              total: { $sum: '$likes' }
-            }
-          }
-        ],
         mostViewed: [
           { $match: { status: 'published', isDeleted: false } },
           { $sort: { views: -1 } },
@@ -414,7 +396,6 @@ insightSchema.statics.getStats = async function () {
             $project: {
               title: 1,
               views: 1,
-              likes: 1,
               type: 1,
               category: 1
             }

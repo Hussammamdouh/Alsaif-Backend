@@ -20,7 +20,7 @@ exports.updateProfile = async (req, res) => {
     }
 
     const userId = req.user.id;
-    const { name, avatar } = req.body;
+    const { name, avatar, country, nationality } = req.body;
 
     // Find user
     const user = await User.findById(userId);
@@ -37,6 +37,12 @@ exports.updateProfile = async (req, res) => {
     }
     if (avatar !== undefined) {
       user.avatar = avatar;
+    }
+    if (country !== undefined) {
+      user.country = country;
+    }
+    if (nationality !== undefined) {
+      user.nationality = nationality;
     }
 
     await user.save();
@@ -59,6 +65,8 @@ exports.updateProfile = async (req, res) => {
           avatar: user.avatar,
           role: user.role,
           isActive: user.isActive,
+          country: user.country,
+          nationality: user.nationality,
           createdAt: user.createdAt,
           updatedAt: user.updatedAt
         }
@@ -468,8 +476,6 @@ exports.exportUserData = async (req, res) => {
         avatar: user.avatar,
         isActive: user.isActive,
         settings: user.settings,
-        followerCount: user.followerCount,
-        followingCount: user.followingCount,
         createdAt: user.createdAt,
         updatedAt: user.updatedAt,
         lastLogin: user.lastLogin,

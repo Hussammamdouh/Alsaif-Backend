@@ -74,5 +74,10 @@ module.exports = {
   // Web Push Notifications (VAPID)
   VAPID_PUBLIC_KEY: process.env.VAPID_PUBLIC_KEY,
   VAPID_PRIVATE_KEY: process.env.VAPID_PRIVATE_KEY,
-  VAPID_EMAIL: process.env.VAPID_EMAIL || process.env.SMTP_FROM_EMAIL || 'noreply@elsaif.com'
+  VAPID_EMAIL: process.env.VAPID_EMAIL || process.env.SMTP_FROM_EMAIL || 'noreply@elsaif.com',
+
+  // Stripe Configuration
+  STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+  STRIPE_WEBHOOK_SECRET: process.env.STRIPE_WEBHOOK_SECRET,
+  FRONTEND_URL: process.env.FRONTEND_URL || 'http://localhost:3000'
 };

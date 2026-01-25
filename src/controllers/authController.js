@@ -104,6 +104,67 @@ class AuthController {
       next(error);
     }
   }
+
+  async verify(req, res, next) {
+    try {
+      const { userId, code } = req.body;
+      const deviceInfo = {
+        userAgent: req.headers['user-agent'],
+        ip: req.ip || req.connection.remoteAddress
+      };
+
+      const result = await authService.verifyAccount(userId, code, deviceInfo);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Account verified successfully',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async resendCode(req, res, next) {
+    try {
+      const { userId } = req.body;
+      const result = await authService.resendVerificationCode(userId);
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Verification code sent',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getSessions(req, res, next) {
+    try {
+      const sessions = await authService.getActiveSessions(req.user.id);
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        data: { sessions }
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async revokeSession(req, res, next) {
+    try {
+      const { sessionId } = req.params;
+      const result = await authService.revokeSession(req.user.id, sessionId);
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: 'Session revoked successfully',
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AuthController();

@@ -1,6 +1,7 @@
 const Notification = require('../models/Notification');
 const NotificationPreference = require('../models/NotificationPreference');
 const User = require('../models/User');
+const NotificationTemplate = require('../models/NotificationTemplate');
 const { notificationEvents, NOTIFICATION_EVENTS, NOTIFICATION_CHANNELS, NOTIFICATION_PRIORITIES } = require('../events/enhancedNotificationEvents');
 
 /**
@@ -178,7 +179,7 @@ class NotificationService {
     }
 
     // Generate notification content
-    const content = this.generateNotificationContent(type, data, user);
+    const content = await this.generateNotificationContent(type, data, user);
 
     // Create notification record
     const notification = await this.createNotificationRecord({
@@ -237,6 +238,8 @@ class NotificationService {
       'system:security-alert': { category: 'system', notificationType: 'securityAlerts' },
       'system:announcement': { category: 'system', notificationType: 'announcements' },
 
+      'chat:message-received': { category: 'engagement', notificationType: 'engagement' },
+
       'insight_request:submitted': { category: 'system', notificationType: 'announcements' }, // Admins get system announcements
       'insight_request:approved': { category: 'content', notificationType: 'newInsights' },
       'insight_request:rejected': { category: 'content', notificationType: 'newInsights' }
@@ -278,12 +281,64 @@ class NotificationService {
 
   /**
    * Generate notification content based on type and data
+   * Priority: Database Template > Hardcoded Default
    */
-  generateNotificationContent(type, data, user) {
-    // This would typically use templates
-    // For now, simple string generation
+  async generateNotificationContent(type, data, user) {
+    // 1. Try to find a template in the database
+    // Map event type (e.g., 'subscription:created') to event trigger (e.g., 'subscription_created')
+    const trigger = type.replace(':', '_').replace('-', '_');
 
+    try {
+      const dbTemplate = await NotificationTemplate.findByEvent(trigger);
+
+      if (dbTemplate && dbTemplate.isActive) {
+        // Prepare variables for rendering
+        const variables = {
+          user_name: user.name,
+          user_email: user.email || '',
+          ...data
+        };
+
+        // Render for in-app (primary display content)
+        const rendered = dbTemplate.render('inApp', variables);
+
+        if (rendered) {
+          return {
+            title: rendered.title,
+            body: rendered.body,
+            richContent: {
+              imageUrl: data.coverImage || data.imageUrl,
+              actionUrl: data.url || data.ctaUrl || '/',
+              actionText: rendered.actionText || 'View',
+              ctaButtons: data.ctaButtons || [
+                {
+                  text: rendered.actionText || 'View',
+                  url: data.url || data.ctaUrl || '/',
+                  style: 'primary'
+                }
+              ]
+            }
+          };
+        }
+      }
+    } catch (error) {
+      console.error(`[NotificationService] Error rendering DB template for ${trigger}:`, error);
+    }
+
+    // 2. Fallback to hardcoded templates
     const templates = {
+      'system:welcome': {
+        title: `Welcome to Elsaif, ${user.name}! 🚀`,
+        body: 'We are thrilled to have you here. Start exploring our latest insights and market analysis today!',
+        actionUrl: '/onboarding',
+        actionText: 'Get Started'
+      },
+      'subscription:created': {
+        title: 'Subscription Confirmed! ✅',
+        body: `Your subscription to the ${data.tier || 'Premium'} plan was successful. Welcome to the elite community!`,
+        actionUrl: '/insights/premium',
+        actionText: 'Explore Premium'
+      },
       'subscription:granted': {
         title: 'Premium Access Granted! 🎉',
         body: `Congratulations ${user.name}! You now have ${data.isLifetime ? 'lifetime' : `${data.daysUntilExpiry}-day`} premium access.`,
@@ -292,7 +347,9 @@ class NotificationService {
       },
       'subscription:expiring-soon': {
         title: 'Subscription Expiring Soon ⏰',
-        body: `Your premium subscription expires in ${data.daysRemaining} day${data.daysRemaining !== 1 ? 's' : ''}. Renew now to keep your access!`,
+        body: data.daysRemaining === 1
+          ? 'Final Reminder: Your premium access expires tomorrow! Renew now to avoid interruption.'
+          : `Your premium subscription expires in ${data.daysRemaining} days. Renew now to stay ahead of the market!`,
         actionUrl: data.renewUrl || '/subscriptions/renew',
         actionText: 'Renew Now'
       },
@@ -304,17 +361,23 @@ class NotificationService {
       },
       'insight:published': {
         title: `New Insight: ${data.title}`,
-        body: data.excerpt || 'A new insight has been published.',
+        body: data.excerpt || 'A new market insight has been published. Read the full analysis now.',
         actionUrl: data.url,
         actionText: 'Read Now',
         imageUrl: data.coverImage
       },
       'insight:premium-published': {
         title: `🌟 New Premium Insight: ${data.title}`,
-        body: data.excerpt || 'Exclusive premium content now available.',
+        body: data.excerpt || 'Exclusive premium analysis now available for our subscribers.',
         actionUrl: data.url,
         actionText: 'Read Now',
         imageUrl: data.coverImage
+      },
+      'chat:message-received': {
+        title: data.isGroup ? `${data.chatName}` : `${data.senderName}`,
+        body: data.isGroup ? `${data.senderName}: ${data.content}` : data.content,
+        actionUrl: data.url || `/chats/${data.chatId}`,
+        actionText: 'Reply'
       },
       'insight_request:submitted': {
         title: 'New Insight Request 📝',

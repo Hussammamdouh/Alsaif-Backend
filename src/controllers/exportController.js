@@ -7,8 +7,6 @@
 const exportService = require('../services/exportService');
 const Insight = require('../models/Insight');
 const Comment = require('../models/Comment');
-const Like = require('../models/Like');
-const Save = require('../models/Save');
 const Analytics = require('../models/Analytics');
 const { HTTP_STATUS } = require('../constants');
 const logger = require('../utils/logger');
@@ -89,12 +87,10 @@ exports.exportUserData = async (req, res) => {
     const userId = req.user.id;
     const User = require('../models/User');
 
-    const [user, insights, comments, likes, saves] = await Promise.all([
+    const [user, insights, comments] = await Promise.all([
       User.findById(userId),
       Insight.find({ author: userId }),
-      Comment.find({ author: userId }),
-      Like.find({ user: userId }),
-      Save.find({ user: userId })
+      Comment.find({ author: userId })
     ]);
 
     if (!user) {
@@ -104,7 +100,7 @@ exports.exportUserData = async (req, res) => {
       });
     }
 
-    const result = await exportService.exportUserData(user, insights, comments, likes, saves);
+    const result = await exportService.exportUserData(user, insights, comments);
 
     res.download(result.filepath, result.filename, (err) => {
       if (err) {

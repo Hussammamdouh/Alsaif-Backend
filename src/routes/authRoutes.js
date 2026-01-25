@@ -27,6 +27,18 @@ router.post(
 );
 
 router.post(
+  '/verify',
+  loginLimiter,
+  authController.verify
+);
+
+router.post(
+  '/resend-verification',
+  loginLimiter,
+  authController.resendCode
+);
+
+router.post(
   '/refresh-token',
   refreshTokenValidation,
   authController.refreshToken
@@ -71,6 +83,9 @@ router.post(
 
 // Protected routes
 router.get('/me', authenticateToken, authController.getMe);
+
+router.get('/sessions', authenticateToken, authController.getSessions);
+router.delete('/sessions/:sessionId', authenticateToken, authController.revokeSession);
 
 router.post('/logout-all', authenticateToken, authController.logoutAll);
 

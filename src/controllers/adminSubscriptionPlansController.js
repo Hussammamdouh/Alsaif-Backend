@@ -103,6 +103,7 @@ exports.createPlan = async (req, res, next) => {
       tier,
       price,
       currency,
+      stripePriceId: req.body.stripePriceId,
       billingCycle,
       features,
       isActive,
@@ -147,7 +148,19 @@ exports.updatePlan = async (req, res, next) => {
     delete updates.tier;
     delete updates.billingCycle;
 
-    Object.keys(updates).forEach(key => {
+    const allowedFields = [
+      'name',
+      'price',
+      'currency',
+      'stripePriceId',
+      'features',
+      'isActive',
+      'isFeatured',
+      'description',
+      'metadata',
+    ];
+
+    allowedFields.forEach((key) => {
       if (updates[key] !== undefined) {
         plan[key] = updates[key];
       }

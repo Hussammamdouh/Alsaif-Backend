@@ -189,15 +189,6 @@ router.get(
   insightController.getPublishedInsightById
 );
 
-// ==================== AUTHENTICATED USER ROUTES ====================
-
-// Like insight (authenticated users)
-router.post(
-  '/:insightId/like',
-  authenticateToken,
-  insightIdValidation,
-  insightController.likeInsight
-);
 
 // ==================== ADMIN ROUTES ====================
 

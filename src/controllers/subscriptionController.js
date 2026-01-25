@@ -9,6 +9,9 @@ const {
 } = require('../utils/subscriptionHelper');
 const { HTTP_STATUS, ROLES } = require('../constants');
 const groupChatService = require('../services/groupChatService');
+const stripeService = require('../services/stripeService');
+const env = require('../config/env');
+const AuditLogger = require('../utils/auditLogger');
 
 /**
  * Subscription Controller
@@ -349,19 +352,45 @@ class SubscriptionController {
   }
 
   /**
+   * Simple in-memory cache for available plans
+   */
+  static _plansCache = {
+    data: null,
+    timestamp: 0,
+    ttl: 10 * 60 * 1000 // 10 minutes
+  };
+
+  /**
    * Get available subscription plans
    * GET /api/subscriptions/plans
    * Public endpoint
    */
   async getAvailablePlans(req, res, next) {
     try {
+      const now = Date.now();
+      const cache = SubscriptionController._plansCache;
+
+      // Return cached plans if valid
+      if (cache.data && (now - cache.timestamp) < cache.ttl) {
+        return res.status(HTTP_STATUS.OK).json({
+          success: true,
+          data: {
+            plans: cache.data
+          }
+        });
+      }
+
       const SubscriptionPlan = require('../models/SubscriptionPlan');
 
       // Get all active and featured plans
       const plans = await SubscriptionPlan.find({ isActive: true })
-        .select('name tier price currency billingCycle features description isFeatured')
+        .select('name tier price currency billingCycle features description isFeatured stripePriceId')
         .sort({ isFeatured: -1, price: 1 })
         .lean();
+
+      // Update cache
+      cache.data = plans;
+      cache.timestamp = now;
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
@@ -448,11 +477,17 @@ class SubscriptionController {
 
       const user = await User.findById(userId);
 
-      // Here you would integrate with your payment gateway (Paymob, Stripe, etc.)
-      // For now, we'll return a checkout URL structure
-      // In production, this would call the payment gateway API
+      // Create Stripe checkout session
+      const session = await stripeService.createCheckoutSession({
+        userId: userId.toString(),
+        userEmail: user.email,
+        stripePriceId: plan.stripePriceId,
+        planId: planId.toString(),
+        tier: plan.tier,
+        successUrl: successUrl || `${env.FRONTEND_URL}/subscription/success?session_id={CHECKOUT_SESSION_ID}`,
+        cancelUrl: cancelUrl || `${env.FRONTEND_URL}/subscription`,
+      });
 
-      const AuditLogger = require('../utils/auditLogger');
       await AuditLogger.log({
         userId,
         action: 'CHECKOUT_INITIATED',
@@ -463,44 +498,18 @@ class SubscriptionController {
           planName: plan.name,
           tier: plan.tier,
           billingCycle,
-          amount: plan.price
+          amount: plan.price,
+          stripeSessionId: session.id
         }
       });
-
-      // PRODUCTION: Replace with actual payment gateway integration
-      // Example for Stripe:
-      // const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-      // const session = await stripe.checkout.sessions.create({
-      //   customer_email: user.email,
-      //   line_items: [{
-      //     price_data: {
-      //       currency: plan.currency || 'usd',
-      //       product_data: {
-      //         name: plan.name,
-      //         description: plan.description
-      //       },
-      //       unit_amount: plan.price * 100,
-      //       recurring: { interval: billingCycle }
-      //     },
-      //     quantity: 1
-      //   }],
-      //   mode: 'subscription',
-      //   success_url: successUrl || `${process.env.FRONTEND_URL}/subscription/success`,
-      //   cancel_url: cancelUrl || `${process.env.FRONTEND_URL}/subscription`,
-      //   metadata: {
-      //     userId: userId.toString(),
-      //     planId: planId.toString(),
-      //     tier: plan.tier
-      //   }
-      // });
 
       res.status(HTTP_STATUS.OK).json({
         success: true,
         data: {
-          checkoutUrl: process.env.PAYMENT_GATEWAY_URL || 'https://payment-gateway.example.com/checkout',
-          sessionId: 'session_' + Date.now(), // In production, this comes from payment gateway
+          checkoutUrl: session.url,
+          sessionId: session.id,
           amount: plan.price,
-          currency: plan.currency || 'USD',
+          currency: plan.currency || 'AED',
           planName: plan.name,
           billingCycle
         },
@@ -518,23 +527,25 @@ class SubscriptionController {
    */
   async handlePaymentWebhook(req, res, next) {
     try {
-      const signature = req.headers['stripe-signature'] || req.headers['x-paymob-signature'];
+      const signature = req.headers['stripe-signature'];
 
-      // PRODUCTION: Verify webhook signature
-      // Example for Stripe:
-      // const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
-      // let event;
-      // try {
-      //   event = stripe.webhooks.constructEvent(
-      //     req.body,
-      //     signature,
-      //     process.env.STRIPE_WEBHOOK_SECRET
-      //   );
-      // } catch (err) {
-      //   return res.status(400).send(`Webhook Error: ${err.message}`);
-      // }
+      if (!signature) {
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: 'Missing Stripe signature'
+        });
+      }
 
-      const event = req.body; // In production, this comes from verified webhook event
+      let event;
+      try {
+        event = stripeService.constructEvent(req.rawBody, signature);
+      } catch (err) {
+        console.error(`[Webhook Error] Signature verification failed: ${err.message}`);
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({
+          success: false,
+          message: `Webhook Signature Error: ${err.message}`
+        });
+      }
 
       // Handle different event types
       switch (event.type) {
@@ -676,13 +687,24 @@ class SubscriptionController {
         break;
     }
 
+    // Calculate duration in days
+    let durationDays = 30;
+    switch (plan.billingCycle) {
+      case 'quarterly': durationDays = 90; break;
+      case 'yearly': durationDays = 365; break;
+    }
+
     // Grant subscription using helper
     await grantPremiumSubscription(
       userId,
-      endDate,
-      'Payment successful',
-      'payment',
-      userId // Self-granted
+      plan.tier,
+      durationDays,
+      {
+        planId: plan._id,
+        billingCycle: plan.billingCycle,
+        source: 'payment',
+        notes: `Stripe Payment Successful: ${paymentData.id}`
+      }
     );
 
     // Create payment record

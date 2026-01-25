@@ -117,7 +117,8 @@ class ChatService {
     return chat;
   }
 
-  async sendMessage(chatId, senderId, content, replyTo = null) {
+  async sendMessage(chatId, senderId, content, options = {}) {
+    const { replyTo = null, type = 'text', fileData = null } = options;
     const chat = await Chat.findById(chatId);
 
     if (!chat) {
@@ -134,14 +135,25 @@ class ChatService {
     }
 
     // SECURITY FIX: Sanitize message content to prevent XSS attacks
-    const sanitizedContent = sanitizeMessage(content, false);
+    const sanitizedContent = content ? sanitizeMessage(content, false) : '';
 
     // Create message with sanitized content
     const messageData = {
       chat: chatId,
       sender: senderId,
-      content: sanitizedContent
+      content: sanitizedContent || (type !== 'text' ? `[${type}]` : ''),
+      type: type,
     };
+
+    // Add file data if provided
+    if (fileData) {
+      messageData.file = {
+        url: fileData.url,
+        name: fileData.name,
+        size: fileData.size,
+        mimeType: fileData.mimeType
+      };
+    }
 
     // Add replyTo if provided
     if (replyTo) {
@@ -150,12 +162,12 @@ class ChatService {
 
     const message = await Message.create(messageData);
 
-    // Update chat's last message with sanitized content
-    chat.updateLastMessage(sanitizedContent, senderId);
+    // Update chat's last message
+    chat.updateLastMessage(messageData.content, senderId);
     await chat.save();
 
     // Populate sender info and replyTo message if exists
-    await message.populate('sender', 'name email');
+    await message.populate('sender', 'name email avatar');
     if (replyTo) {
       await message.populate({
         path: 'replyTo',
@@ -177,7 +189,7 @@ class ChatService {
       chatId: chat._id,
       senderId: senderId,
       senderName: sender.name,
-      content: sanitizedContent,
+      content: messageData.content,
       recipientIds: recipientIds,
       chatName: chat.name || (chat.type === CHAT_TYPES.PRIVATE ? sender.name : 'Group Chat'),
       isGroup: chat.type === CHAT_TYPES.GROUP

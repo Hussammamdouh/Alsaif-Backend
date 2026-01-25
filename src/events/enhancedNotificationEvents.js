@@ -69,11 +69,8 @@ const NOTIFICATION_EVENTS = {
   INSIGHT_REQUEST_REJECTED: 'insight_request:rejected',
 
   // ========== USER ENGAGEMENT EVENTS ==========
-  INSIGHT_LIKED: 'engagement:insight-liked',
   INSIGHT_COMMENTED: 'engagement:insight-commented',
   COMMENT_REPLIED: 'engagement:comment-replied',
-  USER_FOLLOWED: 'engagement:user-followed',
-  AUTHOR_NEW_POST: 'engagement:author-new-post',
 
   // ========== PREMIUM ACCESS EVENTS ==========
   PREMIUM_ACCESS_GRANTED: 'premium:access-granted',

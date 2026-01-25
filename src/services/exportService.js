@@ -146,7 +146,7 @@ class ExportService {
   /**
    * Export user data (GDPR compliance)
    */
-  async exportUserData(user, insights, comments, likes, saves) {
+  async exportUserData(user, insights, comments) {
     try {
       const timestamp = Date.now();
       const filename = `user-data-${user._id}-${timestamp}.json`;
@@ -175,16 +175,6 @@ class ExportService {
           content: c.content,
           insightId: c.insightId,
           createdAt: c.createdAt
-        })),
-        likes: likes.map(l => ({
-          insightId: l.insight,
-          likedAt: l.likedAt
-        })),
-        saves: saves.map(s => ({
-          insightId: s.insight,
-          note: s.note,
-          tags: s.tags,
-          savedAt: s.savedAt
         }))
       };
 

@@ -384,6 +384,66 @@ class GroupChatService {
             canSend: chat.canSendMessage(userId)
         };
     }
+
+    /**
+     * Bulk add participants to a chat by tier or identifier
+     * @param {string} chatId - Chat ID
+     * @param {Object} options - { tiers, identifiers }
+     * @returns {Object} - Result summary
+     */
+    async bulkAddParticipants(chatId, { tiers, identifiers }) {
+        const chat = await Chat.findById(chatId);
+        if (!chat) {
+            throw new Error('Chat not found');
+        }
+
+        const participantIds = new Set();
+
+        // 1. Process Tiers
+        if (tiers && Array.isArray(tiers) && tiers.length > 0) {
+            const usersByTier = await User.find({
+                'subscription.tier': { $in: tiers }
+            }).select('_id');
+            usersByTier.forEach(u => participantIds.add(u._id.toString()));
+        }
+
+        // 2. Process Identifiers (Email, Phone, Name)
+        if (identifiers && Array.isArray(identifiers) && identifiers.length > 0) {
+            const usersByIdentifiers = await User.find({
+                $or: [
+                    { email: { $in: identifiers } },
+                    { phoneNumber: { $in: identifiers } },
+                    { name: { $in: identifiers } }
+                ]
+            }).select('_id');
+            usersByIdentifiers.forEach(u => participantIds.add(u._id.toString()));
+        }
+
+        // 3. Add to chat
+        let addedCount = 0;
+        let skippedCount = 0;
+
+        for (const userId of participantIds) {
+            if (!chat.isParticipant(userId)) {
+                chat.addParticipant(userId, CHAT_PERMISSIONS.MEMBER);
+                addedCount++;
+            } else {
+                skippedCount++;
+            }
+        }
+
+        if (addedCount > 0) {
+            await chat.save();
+        }
+
+        return {
+            chatId,
+            chatName: chat.name,
+            totalFound: participantIds.size,
+            addedCount,
+            skippedCount
+        };
+    }
 }
 
 module.exports = new GroupChatService();

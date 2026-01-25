@@ -31,10 +31,10 @@ const userSchema = new mongoose.Schema(
       validate: {
         validator: function (password) {
           // SECURITY FIX: Enforce stronger password requirements
-          // At least 8 characters with mix of letters and numbers
-          return /^(?=.*[a-zA-Z])(?=.*[0-9]).{8,}$/.test(password);
+          // At least 8 characters, uppercase, lowercase, digit, and special char
+          return /^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*]).{8,}$/.test(password);
         },
-        message: 'Password must be at least 8 characters and contain both letters and numbers'
+        message: 'Password must be at least 8 characters and contain uppercase, lowercase, numbers, and special characters'
       }
     },
     role: {
@@ -95,15 +95,6 @@ const userSchema = new mongoose.Schema(
       type: String,
       default: null
     },
-    // Social features
-    followerCount: {
-      type: Number,
-      default: 0
-    },
-    followingCount: {
-      type: Number,
-      default: 0
-    },
     phoneNumber: {
       type: String,
       trim: true,
@@ -124,6 +115,23 @@ const userSchema = new mongoose.Schema(
     isBannedFromInsights: {
       type: Boolean,
       default: false
+    },
+    isVerified: {
+      type: Boolean,
+      default: false,
+      index: true
+    },
+    verificationCode: {
+      type: String,
+      select: false
+    },
+    verificationCodeExpiresAt: {
+      type: Date,
+      select: false
+    },
+    lastLoggedOutAllAt: {
+      type: Date,
+      default: null
     }
   },
   {

@@ -28,6 +28,10 @@ class AuthService {
       throw new Error(ERROR_MESSAGES.INVALID_CREDENTIALS);
     }
 
+    // Generate 6-digit verification code
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000); // 15 mins
+
     // Create user (password will be hashed by pre-save hook)
     const user = await User.create({
       name,
@@ -36,46 +40,31 @@ class AuthService {
       nationality,
       phoneNumber,
       country,
-      role: ROLES.USER
+      role: ROLES.USER,
+      isVerified: false,
+      verificationCode,
+      verificationCodeExpiresAt
     });
 
-    // Create default free subscription for new user
+    // Create default free subscription for new user (but they can't use it until verified)
     await createDefaultSubscription(user._id, {
       ipAddress: deviceInfo.ip,
       userAgent: deviceInfo.userAgent
     });
 
-    // Add new user to free tier group chat
-    try {
-      await groupChatService.handleNewUserRegistration(user._id);
-    } catch (groupError) {
-      logger.error('[AuthService] Failed to add user to tier group:', groupError);
-    }
-
-    // Generate token pair
-    const { accessToken, refreshToken } = await generateTokenPair(
-      user._id,
-      user.role,
-      deviceInfo
-    );
-
-    // Send welcome email (non-blocking)
-    emailService.sendWelcomeEmail(user).catch((error) => {
-      logger.error('[AuthService] Failed to send welcome email:', error);
+    // Send verification email
+    emailService.sendVerificationCodeEmail(user, verificationCode).catch((error) => {
+      logger.error('[AuthService] Failed to send verification email:', error);
     });
 
     return {
       user: {
-        _id: user._id,
         id: user._id,
         name: user.name,
         email: user.email,
-        role: user.role,
-        isActive: user.isActive
-      },
-      token: accessToken, // For backward compatibility
-      accessToken,
-      refreshToken
+        phoneNumber: user.phoneNumber,
+        isVerified: user.isVerified
+      }
     };
   }
 
@@ -114,6 +103,12 @@ class AuthService {
     // Check if user is active
     if (!user.isActive) {
       throw new Error(ERROR_MESSAGES.ACCOUNT_DEACTIVATED);
+    }
+
+    // Check if user is verified (admins bypass this check)
+    const isAdminRole = user.role === ROLES.ADMIN || user.role === ROLES.SUPERADMIN;
+    if (!user.isVerified && !isAdminRole) {
+      throw new Error('Please verify your account before logging in');
     }
 
     // Verify password
@@ -283,11 +278,124 @@ class AuthService {
       }
     }
 
-    // Note: Other active access tokens from other sessions will still be valid
-    // until they expire (15 minutes). For complete revocation, users should
-    // change their password or admin should disable the account.
+    // SECURITY FIX (CRITICAL): Set global revocation timestamp
+    await User.findByIdAndUpdate(userId, { lastLoggedOutAllAt: new Date() });
 
     return { message: 'Logged out from all devices' };
+  }
+
+  async verifyAccount(userId, code, deviceInfo = {}) {
+    const user = await User.findById(userId).select('+verificationCode +verificationCodeExpiresAt');
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.isVerified) {
+      throw new Error('Account is already verified');
+    }
+
+    if (user.verificationCode !== code) {
+      throw new Error('Invalid verification code');
+    }
+
+    if (user.verificationCodeExpiresAt < new Date()) {
+      throw new Error('Verification code has expired');
+    }
+
+    user.isVerified = true;
+    user.verificationCode = undefined;
+    user.verificationCodeExpiresAt = undefined;
+    await user.save();
+
+    // Add user to free tier group chat now that they are verified
+    try {
+      await groupChatService.handleNewUserRegistration(user._id);
+    } catch (groupError) {
+      logger.error('[AuthService] Failed to add user to tier group:', groupError);
+    }
+
+    // Generate token pair
+    const { accessToken, refreshToken } = await generateTokenPair(
+      user._id,
+      user.role,
+      deviceInfo
+    );
+
+    // Send welcome email
+    emailService.sendWelcomeEmail(user).catch((error) => {
+      logger.error('[AuthService] Failed to send welcome email:', error);
+    });
+
+    return {
+      user: {
+        id: user._id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        isVerified: user.isVerified
+      },
+      accessToken,
+      refreshToken
+    };
+  }
+
+  async resendVerificationCode(userId) {
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error('User not found');
+    }
+
+    if (user.isVerified) {
+      throw new Error('Account is already verified');
+    }
+
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    user.verificationCode = verificationCode;
+    user.verificationCodeExpiresAt = new Date(Date.now() + 15 * 60 * 1000);
+    await user.save();
+
+    await emailService.sendVerificationCodeEmail(user, verificationCode);
+
+    return { success: true, message: 'Verification code sent' };
+  }
+
+  /**
+   * Get active sessions for a user
+   */
+  async getActiveSessions(userId) {
+    const RefreshToken = require('../models/RefreshToken');
+
+    // Find valid tokens for user
+    const tokens = await RefreshToken.find({
+      user: userId,
+      isRevoked: false,
+      expiresAt: { $gt: new Date() }
+    }).sort({ updatedAt: -1 });
+
+    return tokens.map(t => ({
+      id: t._id,
+      deviceInfo: t.deviceInfo,
+      lastActive: t.updatedAt,
+      expiresAt: t.expiresAt
+    }));
+  }
+
+  /**
+   * Revoke a specific session
+   */
+  async revokeSession(userId, tokenId) {
+    const RefreshToken = require('../models/RefreshToken');
+
+    const result = await RefreshToken.updateOne(
+      { _id: tokenId, user: userId },
+      { isRevoked: true }
+    );
+
+    if (result.matchedCount === 0) {
+      throw new Error('Session not found or already revoked');
+    }
+
+    return { success: true };
   }
 }
 

@@ -66,6 +66,25 @@ exports.getUserGrowth = async (req, res, next) => {
         },
       },
       {
+        $lookup: {
+          from: 'subscriptions',
+          localField: '_id',
+          foreignField: 'user',
+          as: 'subscriptions',
+        },
+      },
+      {
+        $addFields: {
+          activeSubscription: {
+            $filter: {
+              input: '$subscriptions',
+              as: 'sub',
+              cond: { $eq: ['$$sub.status', 'active'] },
+            },
+          },
+        },
+      },
+      {
         $group: {
           _id: groupBy,
           newUsers: { $sum: 1 },
@@ -73,9 +92,7 @@ exports.getUserGrowth = async (req, res, next) => {
             $sum: { $cond: [{ $eq: ['$isActive', true] }, 1, 0] },
           },
           premiumUsers: {
-            // NOTE: subscriptionStatus is not in User model, this will likely return 0
-            // until we either add it or join with Subscriptions
-            $sum: { $cond: [{ $eq: ['$subscriptionStatus', 'active'] }, 1, 0] },
+            $sum: { $cond: [{ $gt: [{ $size: '$activeSubscription' }, 0] }, 1, 0] },
           },
         },
       },
@@ -593,9 +610,8 @@ exports.getConversionFunnel = async (req, res, next) => {
 
     const [totalUsers, trialUsers, paidUsers] = await Promise.all([
       User.countDocuments(dateFilter),
-      // NOTE: subscriptionStatus is not in User model, these will likely return 0
-      User.countDocuments({ ...dateFilter, subscriptionStatus: { $in: ['trial', 'active'] } }),
-      User.countDocuments({ ...dateFilter, subscriptionStatus: 'active' }),
+      Subscription.countDocuments({ ...dateFilter, status: 'trial' }),
+      Subscription.countDocuments({ ...dateFilter, status: 'active' }),
     ]);
 
     const conversionRate = totalUsers > 0 ? ((paidUsers / totalUsers) * 100).toFixed(2) : 0;

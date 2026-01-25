@@ -639,6 +639,50 @@ class AdminChatController {
       next(error);
     }
   }
+
+  /**
+   * Bulk add participants to chat (Admin/Superadmin only)
+   * POST /api/admin/chats/:chatId/participants/bulk
+   */
+  async addParticipantsBulk(req, res, next) {
+    try {
+      const { chatId } = req.params;
+      const { tiers, identifiers, reason } = req.body;
+
+      const groupChatService = require('../services/groupChatService');
+      const result = await groupChatService.bulkAddParticipants(chatId, { tiers, identifiers });
+
+      // Audit log
+      await AuditLogger.logFromRequest(req, {
+        action: AUDIT_ACTIONS.CHAT_UPDATED,
+        target: {
+          resourceType: 'Chat',
+          resourceId: chatId,
+          resourceName: result.chatName
+        },
+        changes: {
+          after: {
+            addedParticipantsCount: result.addedCount,
+            tiersUsed: tiers,
+            identifiersUsedCount: identifiers?.length || 0
+          }
+        },
+        metadata: {
+          severity: 'medium',
+          reason: reason || 'Bulk add participants',
+          notes: `Added ${result.addedCount} users. Skipped ${result.skippedCount} (already in chat).`
+        }
+      });
+
+      res.status(HTTP_STATUS.OK).json({
+        success: true,
+        message: `Successfully added ${result.addedCount} participants`,
+        data: result
+      });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = new AdminChatController();

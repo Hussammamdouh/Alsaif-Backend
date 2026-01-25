@@ -90,6 +90,26 @@ const authenticateToken = async (req, res, next) => {
       });
     }
 
+    // SECURITY FIX (CRITICAL): Global Token Revocation
+    // If user logged out of all devices, tokens issued before that time are invalid
+    if (user.lastLoggedOutAllAt) {
+      const tokenIssuedAt = new Date(decoded.iat * 1000);
+      if (tokenIssuedAt < user.lastLoggedOutAllAt) {
+        logger.warn('Authentication failed: Token revoked by global logout', {
+          ip: req.ip,
+          userId: user._id,
+          tokenIssuedAt,
+          lastLoggedOutAllAt: user.lastLoggedOutAllAt,
+          securityEvent: 'GLOBAL_REVOCATION_LOGOUT'
+        });
+
+        return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+          success: false,
+          message: ERROR_MESSAGES.TOKEN_INVALID
+        });
+      }
+    }
+
     // Attach user to request
     req.user = {
       id: user._id,

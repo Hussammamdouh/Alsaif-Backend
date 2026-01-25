@@ -61,18 +61,18 @@ const chatHandlers = (io, socket) => {
   });
 
   // Send message - SECURITY: Rate limited to prevent spam
-  socket.on(SOCKET_EVENTS.SEND_MESSAGE, rateLimitedHandler(async function(data) {
+  socket.on(SOCKET_EVENTS.SEND_MESSAGE, rateLimitedHandler(async function (data) {
     try {
-      const { chatId, content, replyTo } = data;
+      const { chatId, content, replyTo, type = 'text', fileData = null } = data;
 
       // SECURITY FIX (HIGH-005): Validate message content length
-      if (!content || !content.trim()) {
-        this.emit(SOCKET_EVENTS.ERROR, { message: 'Message content is required' });
+      if ((!content || !content.trim()) && type === 'text') {
+        this.emit(SOCKET_EVENTS.ERROR, { message: 'Message content is required for text messages' });
         return;
       }
 
       // Enforce maximum message length (10KB per message)
-      if (content.length > 10000) {
+      if (content && content.length > 10000) {
         this.emit(SOCKET_EVENTS.ERROR, {
           message: 'Message too long. Maximum 10,000 characters allowed.',
           code: 'MESSAGE_TOO_LONG'
@@ -81,7 +81,11 @@ const chatHandlers = (io, socket) => {
       }
 
       // Send message via service (includes XSS sanitization)
-      const message = await chatService.sendMessage(chatId, userId, content.trim(), replyTo);
+      const message = await chatService.sendMessage(chatId, userId, content?.trim(), {
+        replyTo,
+        type,
+        fileData
+      });
 
       // Emit to all participants in the chat room
       const messageData = {
@@ -89,6 +93,8 @@ const chatHandlers = (io, socket) => {
         content: message.content,
         sender: message.sender,
         status: message.status,
+        type: message.type,
+        file: message.file,
         createdAt: message.createdAt
       };
 

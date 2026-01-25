@@ -177,4 +177,16 @@ router.delete(
   adminChatController.deleteChat
 );
 
+// Bulk add participants
+router.post(
+  '/:chatId/participants/bulk',
+  [
+    param('chatId').isMongoId().withMessage('Invalid chat ID'),
+    body('tiers').optional().isArray().withMessage('Tiers must be an array'),
+    body('identifiers').optional().isArray().withMessage('Identifiers must be an array'),
+    validate
+  ],
+  adminChatController.addParticipantsBulk
+);
+
 module.exports = router;

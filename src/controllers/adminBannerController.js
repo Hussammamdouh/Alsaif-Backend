@@ -25,7 +25,7 @@ exports.getAllBanners = async (req, res, next) => {
  */
 exports.createBanner = async (req, res, next) => {
     try {
-        const { title, imageUrl, link, partner, isActive, order, type } = req.body;
+        const { title, imageUrl, link, partner, isActive, order, type, displayDurationDays } = req.body;
 
         const banner = new Banner({
             title,
@@ -35,6 +35,7 @@ exports.createBanner = async (req, res, next) => {
             isActive,
             order,
             type,
+            displayDurationDays,
         });
 
         await banner.save();

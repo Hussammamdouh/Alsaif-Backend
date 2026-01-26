@@ -25,6 +25,7 @@ class MarketDataService {
         this.lastAlertTime = 0;
         this.ALERT_COOLDOWN = 15 * 60 * 1000;
         this.lastMarketStatus = undefined;
+        this.isFetching = false; // Sync lock
     }
 
     async initialize() {
@@ -88,7 +89,14 @@ class MarketDataService {
         this.lastMarketStatus = isOpen;
 
         // Sync every minute during open hours
-        if (isOpen) await this.fetchMarketData();
+        if (isOpen && !this.isFetching) {
+            this.isFetching = true;
+            try {
+                await this.fetchMarketData();
+            } finally {
+                this.isFetching = false;
+            }
+        }
     }
 
     async fetchMarketData() {
@@ -156,11 +164,19 @@ class MarketDataService {
                                 return parseFloat(target?.innerText.replace(/[%,]/g, '')) || 0;
                             };
 
+                            const price = parse('.lastradeprice');
+                            const prevClose = parse('.previousclosingprice');
+
                             batch.push({
                                 symbol: `${symbol}.AE`,
                                 exchange: 'DFM',
-                                price: parse('.lastradeprice'),
+                                price: price,
+                                change: price - prevClose,
                                 changePercent: parse('.changepercentage'),
+                                high: parse('.highprice') || price,
+                                low: parse('.lowprice') || price,
+                                open: parse('.openprice') || price,
+                                prevClose: prevClose,
                                 volume: parse('.totalvolume'),
                                 currency: 'AED',
                                 shortName: symbol,
@@ -240,62 +256,149 @@ class MarketDataService {
         try {
             browser = await puppeteer.launch({
                 headless: 'new',
-                args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1280,1000']
+                args: ['--no-sandbox', '--disable-setuid-sandbox', '--window-size=1440,1200']
             });
             const page = await browser.newPage();
             await page.setUserAgent(USER_AGENT);
-            await page.setViewport({ width: 1280, height: 1000 });
-            await page.goto(ADX_URL, { waitUntil: 'networkidle2', timeout: 50000 });
+            await page.setViewport({ width: 1440, height: 2500 });
 
-            // Accept Cookies
+            logger.info('[ADX] Navigating to ADX All Equities...');
+            // Using 'domcontentloaded' as networkidle2 often fails on heavy ADX site
+            await page.goto(ADX_URL, { waitUntil: 'domcontentloaded', timeout: 90000 });
+
+            // Wait for any likely content to appear
             try {
-                await page.evaluate(() => {
-                    const btns = Array.from(document.querySelectorAll('button'));
-                    const allBtn = btns.find(b => b.innerText.includes('Accept All'));
-                    if (allBtn) allBtn.click();
-                });
-            } catch (e) { }
+                await page.waitForSelector('table, .rdt_Table', { timeout: 30000 });
+            } catch (e) {
+                logger.warn('[ADX] Main content container not found, proceeding anyway');
+            }
+
+            // Initial wait for scripts to load
+            await new Promise(r => setTimeout(r, 12000));
+            // Trigger bottom section loading (where the main table lives)
+            await page.evaluate(() => window.scrollTo(0, 1500));
+            await new Promise(r => setTimeout(r, 4000));
 
             const results = new Map();
-            for (let i = 0; i < 8; i++) {
+            let lastFirstTicker = '';
+
+            // Loop for discovery (40 iterations for deep scroll)
+            for (let i = 0; i < 40; i++) {
                 const data = await page.evaluate(() => {
-                    const wrapper = document.querySelector('#content-wrapper');
-                    const rows = Array.from(document.querySelectorAll('.rdt_TableRow'));
-                    const batch = rows.map(row => {
-                        const symbolEl = row.querySelector('[data-column-id="Symbol"] a');
-                        const symbol = symbolEl ? symbolEl.innerText.trim() : '';
-                        if (!symbol) return null;
+                    const batch = [];
+                    const parseValue = (text) => parseFloat(text?.trim().replace(/[%,]/g, '')) || 0;
 
-                        const parse = (sel) => {
-                            const target = row.querySelector(`[data-column-id="${sel}"]`);
-                            return parseFloat(target?.innerText.replace(/[%,]/g, '')) || 0;
-                        };
+                    // 1. Identify Target Grid (Traditional table or Role-based Grid)
+                    const findGrid = () => {
+                        const containers = Array.from(document.querySelectorAll('table, [role="table"], .rdt_Table'));
+                        let grid = containers.find(t => {
+                            const text = t.innerText?.toUpperCase() || '';
+                            return text.includes('SYMBOL') && text.includes('LAST');
+                        });
 
-                        return {
-                            symbol: `${symbol}.AD`,
+                        if (!grid) {
+                            const candidates = Array.from(document.querySelectorAll('div, section, main'));
+                            grid = candidates.find(c => {
+                                const text = c.innerText?.toUpperCase() || '';
+                                return text.includes('SYMBOL') && text.includes('LAST') && text.includes('P CLOSE') && text.length < 100000;
+                            });
+                        }
+                        return grid;
+                    };
+
+                    const targetTable = findGrid();
+                    const tableDiagnostics = Array.from(document.querySelectorAll('table, [role="table"]'))
+                        .map(t => t.innerText?.substring(0, 100).replace(/\n/g, ' '));
+
+                    if (!targetTable) return { batch: [], metrics: { name: 'NOT_FOUND', diag: tableDiagnostics } };
+
+                    // 2. Capture rows specifically from this table
+                    const rows = Array.from(targetTable.querySelectorAll('tbody tr, .rdt_TableRow, tr[role="row"]'));
+                    rows.forEach(row => {
+                        const cells = Array.from(row.querySelectorAll('td, .rdt_TableCell, [role="cell"]'));
+                        if (cells.length < 10) return; // Expecting many columns based on Screenshot 2
+
+                        // Screenshot 2 Mapping:
+                        // 1: Symbol, 7: Last (Price), 8: P Close (PrevClose), 9: Change (%), 11: Volume
+                        const ticker = cells[1]?.innerText?.trim();
+                        if (!ticker || ticker.length > 15 || /[^A-Z0-9.-]/.test(ticker)) return;
+                        if (['COMPANY', 'SYMBOL', 'NAME', 'LAST'].includes(ticker.toUpperCase())) return;
+
+                        const price = parseValue(cells[7]?.innerText);
+                        const prevClose = parseValue(cells[8]?.innerText);
+
+                        batch.push({
+                            symbol: `${ticker}.AD`,
                             exchange: 'ADX',
-                            price: parse('Last'),
-                            changePercent: parse('Change'),
-                            volume: parse('Volume'),
+                            price: price,
+                            change: price - prevClose,
+                            changePercent: parseValue(cells[9]?.innerText), // Percentage column
+                            high: price, // ADX table doesn't show high/low in this view
+                            low: price,
+                            open: price,
+                            prevClose: prevClose,
+                            volume: parseValue(cells[11]?.innerText),
                             currency: 'AED',
-                            shortName: symbol,
+                            shortName: ticker,
                             lastUpdated: new Date().toISOString(),
                             chartData: []
-                        };
-                    }).filter(x => x !== null);
+                        });
+                    });
 
-                    if (wrapper) wrapper.scrollBy(0, 1000);
-                    return batch;
+                    // 3. Smart Scroller: Find the parent of the targetTable that scrolls
+                    const findScrollable = (el) => {
+                        if (!el || el === document.body || el === document.documentElement) return window;
+                        const style = window.getComputedStyle(el);
+                        const overflow = style.getPropertyValue('overflow-y');
+                        if ((overflow === 'auto' || overflow === 'scroll') && el.scrollHeight > el.clientHeight) return el;
+                        return findScrollable(el.parentElement);
+                    };
+
+                    const scroller = findScrollable(targetTable);
+
+                    let metrics = { top: 0, height: 0, name: 'window' };
+                    if (scroller !== window) {
+                        scroller.scrollTop += 350;
+                        metrics = { top: scroller.scrollTop, height: scroller.scrollHeight, name: scroller.className || scroller.tagName };
+                    } else {
+                        window.scrollBy(0, 500);
+                        metrics = { top: window.scrollY, height: document.body.scrollHeight, name: 'window' };
+                    }
+
+                    return { batch, metrics };
                 });
-                data.forEach(item => results.set(item.symbol, item));
-                await new Promise(r => setTimeout(r, 800));
+
+                if (data.batch && data.batch.length > 0) {
+                    data.batch.forEach(item => results.set(item.symbol, item));
+                    const currentTop = data.batch[0]?.shortName || '';
+                    if (currentTop !== lastFirstTicker) {
+                        logger.info(`[ADX] Cycle ${i + 1}: Found '${currentTop}' in main table. Total: ${results.size}`);
+                        lastFirstTicker = currentTop;
+                    }
+                }
+
+                if (i % 5 === 0 || i === 39) {
+                    let scrollerInfo = '';
+                    if (data.metrics.name === 'NOT_FOUND') {
+                        scrollerInfo = `TABLE NOT FOUND. Tables seen: ${JSON.stringify(data.metrics.diag || [])}`;
+                    } else {
+                        scrollerInfo = `${Math.round(data.metrics.top)}/${data.metrics.height} (${data.metrics.name})`;
+                    }
+                    logger.info(`[ADX] Scroll ${i + 1}: Total ${results.size}. ${scrollerInfo}`);
+                }
+
+                await new Promise(r => setTimeout(r, 2000));
                 if (results.size >= 125) break;
             }
 
             const equities = Array.from(results.values());
+            logger.info(`[ADX] Capture Cycle Finished. Final Count: ${equities.length}`);
 
-            // 3. Fetch Charts for ADX
-            logger.info(`[ADX] Fetching charts for ${equities.length} symbols...`);
+            if (equities.length === 0) {
+                logger.warn('[ADX] No equities found. Website might have changed structure.');
+            }
+
+            // Sync charts sequentially (limit to top symbols to avoid timeout)
             for (const eq of equities) {
                 try {
                     const chartData = await page.evaluate(async (sym) => {
@@ -312,21 +415,25 @@ class MarketDataService {
                         return [];
                     }, eq.shortName);
                     eq.chartData = chartData;
-                } catch (e) {
-                    logger.error(`[ADX] Chart fetch failed for ${eq.symbol}:`, e.message);
-                }
+                } catch (e) { }
             }
 
             await browser.close();
             return equities.map(r => ({ ...r, lastUpdated: new Date(r.lastUpdated) }));
         } catch (error) {
             if (browser) await browser.close();
+            logger.error('[ADX] Sync Failed:', error.message || error);
             throw error;
         }
     }
 
     async processResults(dataList) {
         if (!dataList || dataList.length === 0) return;
+
+        // Debug sample
+        const sample = dataList[0];
+        logger.debug(`[MarketData] Sample Enriched Data (${sample.symbol}): Price=${sample.price}, Change=${sample.change}, Vol=${sample.volume}, High=${sample.high}, Prev=${sample.prevClose}`);
+
         const bulkOps = dataList.map(data => {
             marketCache.set(data.symbol, data);
             return {

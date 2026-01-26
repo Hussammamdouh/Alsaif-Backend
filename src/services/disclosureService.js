@@ -16,6 +16,7 @@ const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 class DisclosureService {
     constructor() {
         this.isInitialized = false;
+        this.isScraping = false; // Scrape lock
     }
 
     async initialize() {
@@ -39,30 +40,37 @@ class DisclosureService {
     }
 
     async scrapeAll() {
+        if (this.isScraping) return;
+        this.isScraping = true;
+
         logger.info('[DisclosureService] Starting Scrape Cycle...');
         const startTime = Date.now();
 
-        const [dfmResults, adxResults] = await Promise.allSettled([
-            this.scrapeDFM(),
-            this.scrapeADX()
-        ]);
+        try {
+            const [dfmResults, adxResults] = await Promise.allSettled([
+                this.scrapeDFM(),
+                this.scrapeADX()
+            ]);
 
-        let dfmCount = 0;
-        let adxCount = 0;
+            let dfmCount = 0;
+            let adxCount = 0;
 
-        if (dfmResults.status === 'fulfilled') {
-            dfmCount = dfmResults.value;
-        } else {
-            logger.error('[DisclosureService] DFM Scrape Failed:', dfmResults.reason?.message || dfmResults.reason);
+            if (dfmResults.status === 'fulfilled') {
+                dfmCount = dfmResults.value;
+            } else {
+                logger.error('[DisclosureService] DFM Scrape Failed:', dfmResults.reason?.message || dfmResults.reason);
+            }
+
+            if (adxResults.status === 'fulfilled') {
+                adxCount = adxResults.value;
+            } else {
+                logger.error('[DisclosureService] ADX Scrape Failed:', adxResults.reason?.message || adxResults.reason);
+            }
+
+            logger.info(`[DisclosureService] Scrape Complete in ${Date.now() - startTime}ms. New: DFM(${dfmCount}) ADX(${adxCount})`);
+        } finally {
+            this.isScraping = false;
         }
-
-        if (adxResults.status === 'fulfilled') {
-            adxCount = adxResults.value;
-        } else {
-            logger.error('[DisclosureService] ADX Scrape Failed:', adxResults.reason?.message || adxResults.reason);
-        }
-
-        logger.info(`[DisclosureService] Scrape Complete in ${Date.now() - startTime}ms. New: DFM(${dfmCount}) ADX(${adxCount})`);
     }
 
     async scrapeDFM() {
@@ -118,28 +126,40 @@ class DisclosureService {
                 try {
                     const date = this.parseDate(item.dateStr);
 
-                    // Check if we already have this disclosure
-                    const existing = await Disclosure.findOne({
+                    // Check if we already have this disclosure by URL (most reliable unique key for PDF dumps)
+                    const existingByUrl = await Disclosure.findOne({
+                        url: item.url || (item.pdfUrls && item.pdfUrls[0])
+                    });
+
+                    if (existingByUrl) {
+                        // If it exists but might need enrichment (like Arabic title), update it
+                        if (!existingByUrl.titleAr && item.titleAr) {
+                            await Disclosure.updateOne({ _id: existingByUrl._id }, { $set: { titleAr: item.titleAr } });
+                        }
+                        continue;
+                    }
+
+                    // Check by title + exchange + date as fallback
+                    const existingByTitle = await Disclosure.findOne({
                         title: item.titleEn,
                         exchange: 'DFM',
                         date: date
                     });
 
-                    if (existing && existing.pdfUrls && existing.pdfUrls.length > 0 && existing.titleAr && existing.titleEn) {
-                        continue;
-                    }
+                    if (existingByTitle) continue;
 
                     // Navigate ONLY to English detail page to capture PDF URLs
                     const pdfUrls = await this.extractDfmPdfUrls(page, item.detailUrl);
 
                     if (pdfUrls.length > 0) {
+                        const primaryUrl = pdfUrls[0];
                         await Disclosure.findOneAndUpdate(
-                            { title: item.titleEn, exchange: 'DFM', date: date },
+                            { url: primaryUrl }, // Use URL as unique key (prevents E11000)
                             {
-                                title: item.titleAr, // Set primary title as Arabic for consistency
+                                title: item.titleAr,
                                 titleAr: item.titleAr,
                                 titleEn: item.titleEn,
-                                url: pdfUrls[0],
+                                url: primaryUrl,
                                 pdfUrls: pdfUrls,
                                 date: date,
                                 exchange: 'DFM'
@@ -147,7 +167,7 @@ class DisclosureService {
                             { upsert: true, new: true }
                         );
                         newCount++;
-                        logger.info(`[DFM] Saved merged bilingual: ${item.titleEn.substring(0, 50)}...`);
+                        logger.info(`[DFM] Saved/Updated: ${item.titleEn.substring(0, 50)}...`);
                     }
                 } catch (e) {
                     logger.debug(`[DFM] Error processing item: ${e.message}`);
@@ -300,7 +320,7 @@ class DisclosureService {
                     if (url.startsWith('/')) url = 'https://www.adx.ae' + url;
 
                     await Disclosure.findOneAndUpdate(
-                        { title: item.title, exchange: 'ADX', date: date },
+                        { url: url }, // Use URL as unique key
                         {
                             title: item.title,
                             titleAr: item.title,

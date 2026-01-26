@@ -43,6 +43,10 @@ const bannerSchema = new mongoose.Schema(
             default: 'both',
             index: true,
         },
+        displayDurationDays: {
+            type: Number,
+            default: null,
+        },
     },
     {
         timestamps: true,

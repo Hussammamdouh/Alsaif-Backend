@@ -15,7 +15,19 @@ exports.getActiveBanners = async (req, res, next) => {
             query.type = { $in: [type, 'both'] };
         }
 
-        const banners = await Banner.find(query).sort({ order: 1, createdAt: -1 });
+        let banners = await Banner.find(query).sort({ order: 1, createdAt: -1 });
+
+        // Filter by duration if displayDurationDays is set
+        const now = new Date();
+        banners = banners.filter(banner => {
+            if (!banner.displayDurationDays) return true;
+
+            const createdAt = new Date(banner.createdAt);
+            const expiryDate = new Date(createdAt);
+            expiryDate.setDate(createdAt.getDate() + banner.displayDurationDays);
+
+            return now < expiryDate;
+        });
 
         res.status(HTTP_STATUS.OK).json({
             success: true,
